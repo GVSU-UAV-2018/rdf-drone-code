@@ -1,0 +1,34 @@
+#!/usr/bin/env python2
+
+if __name__ != '__main__':
+    print 'loading '+__name__+' as a module: what do you think you\'re doing?'
+    os.exit(-1)
+from time import sleep
+
+from gnuradio import gr
+from gnuradio import blocks
+from gnuradio import audio
+
+import programsetup
+from wavsource import WavSource
+
+config = programsetup.get_config()
+directions = config['search pattern']['directions']
+hold_time = config['search pattern']['hold time']
+
+class Main(gr.top_block):
+    def __init__(self):
+        gr.top_block.__init__(self)
+        self.source = WavSource(radio_config=config['radio'], playback_folder=config['general']['recording folder'])
+        self.connect((self.source, 0), blocks.udp_sink(gr.sizeof_gr_complex, "127.0.0.1", 13000, 1472, False))
+        #self.connect((self.source, 0), blocks.complex_to_real(), blocks.multiply_const_ff(250), audio.sink(48000))
+        self.connect((self.source, 1), blocks.null_sink(gr.sizeof_int))
+
+main = Main()
+main.start()
+
+while True:
+    for direction in directions:
+        print 'direction: {0}'.format(direction)
+        main.source.play(direction)
+        sleep(hold_time * 2)

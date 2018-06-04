@@ -1,0 +1,46 @@
+#!/usr/bin/env python2
+
+if __name__ != '__main__':
+    print 'loading '+__name__+' as a module: what do you think you\'re doing?'
+    os.exit(-1)
+
+import csv
+import zmq
+
+control_port = config['ports/control']
+signal_port = config['ports/signal output']
+
+z = zmq.Context()
+
+control = z.socket(zmq.SUB)
+control.connect('tcp://*:{0}'.format(control_port))
+
+signal = z.socket(zmq.SUB)
+signal.connect('udp://*:{0}'.format(signal_port))
+
+direction = None
+
+while True:
+    try:
+        control_msg = control.recv_json(flags=zmq.NOBLOCK)
+    except ZMQError:
+        pass
+    else:
+        direction = control_msg.get('direction', direction)
+        print 'direction:{0}'.format(direction)
+
+    try:
+        signal_msg = signal.recv_json(flags=zmq.NOBLOCK)
+    except ZMQError:
+        pass
+    else:
+        print 'got data'
+        if direction is None:
+            print 'dont\'t know direction yet'
+        else:
+            data_recorder.writerow((
+                direction,
+                signal_msg['noise mean'],
+                signal_msg['noise std'],
+                signal_msg['signal mean'],
+                signal_msg['confidence']))
