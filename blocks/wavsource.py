@@ -22,7 +22,7 @@ This index is output with each point in the sample.
 
 class WavSource(gr.hier_block2):
 
-    def __init__(self, radio_config, playback_folder):
+    def __init__(self, radio_config, playback_folder, throttle=True):
         """
         :param radio_config:
             The parameters to configure the radio (or in this case, file),
@@ -39,7 +39,7 @@ class WavSource(gr.hier_block2):
         ##################################################
         # Variables
         ##################################################
-        self.sample_rate = radio_config['sample rate']*2/3
+        self.sample_rate = radio_config['sample rate']
         self.playback_folder = playback_folder
 
         ##################################################
@@ -50,34 +50,36 @@ class WavSource(gr.hier_block2):
         self.gr_copy = blocks.copy(gr.sizeof_float)
 
         self.gr_wav_source = blocks.null_source(gr.sizeof_float)
-        self.gr_constant = blocks.null_source(gr.sizeof_float)
+        self.gr_constant = blocks.null_source(gr.sizeof_int)
 
         ##################################################
         # Connections
         ##################################################
-        self.connect(self.gr_float_to_complex, self.gr_throttle, (self, 0))
+        if throttle:
+            self.connect(self.gr_float_to_complex, self.gr_throttle, (self, 0))
+        else:
+            self.connect(self.gr_float_to_complex, (self, 0))
+
         self.connect(self.gr_copy, (self, 1))
 
-        self.connect(self.gr_wav_source, (self.gr_float_to_complex, 0))
-        self.connect(self.gr_wav_source, (self.gr_float_to_complex, 1))
+        self.connect((self.gr_wav_source, 0), (self.gr_float_to_complex, 0))
+        self.connect((self.gr_wav_source, 1), (self.gr_float_to_complex, 1))
         self.connect(self.gr_constant, self.gr_copy)
 
 
     def play(self, index):
         self.lock()
 
-        if self.gr_wav_source is not None:
-            self.disconnect(self.gr_wav_source)
-        if self.gr_constant is not None:
-            self.disconnect(self.gr_constant)
+        self.disconnect(self.gr_wav_source)
+        self.disconnect(self.gr_constant)
 
         self.index = index
         self.gr_wav_source = blocks.wavfile_source(
             self.playback_folder+'/'+str(index)+'.wav')
-        self.gr_constant = blocks.vector_source_f([index], repeat=True)
+        self.gr_constant = blocks.vector_source_i([index], repeat=True)
 
         self.connect((self.gr_wav_source, 0), (self.gr_float_to_complex, 0))
         self.connect((self.gr_wav_source, 1), (self.gr_float_to_complex, 1))
         self.connect(self.gr_constant, self.gr_copy)
-
+        
         self.unlock()

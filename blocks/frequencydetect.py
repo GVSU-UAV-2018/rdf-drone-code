@@ -43,17 +43,26 @@ Outputs:
                           frequency
 """
 
-FrequencyDetect_output_types = OrderedDict{
-    'snr': gr.sizeof_float,
-    'signal estimate', gr.sizeof_float,
-    'noise estimate', gr.sizeof_float,
-    'noise std', gr.sizeof_float,
-    'confidence', gr.sizeof_float
-}
+FrequencyDetect_output_types = OrderedDict()
+FrequencyDetect_output_types['snr'] = gr.sizeof_float
+FrequencyDetect_output_types['signal estimate'] = gr.sizeof_float
+FrequencyDetect_output_types['noise estimate'] = gr.sizeof_float
+FrequencyDetect_output_types['noise std'] = gr.sizeof_float
+FrequencyDetect_output_types['confidence'] = gr.sizeof_float
+
+FrequencyDetect_output_python_types = OrderedDict()
+FrequencyDetect_output_python_types['snr'] = numpy.float32
+FrequencyDetect_output_python_types['signal estimate'] = numpy.float32
+FrequencyDetect_output_python_types['noise estimate'] = numpy.float32
+FrequencyDetect_output_python_types['noise std'] = numpy.float32
+FrequencyDetect_output_python_types['confidence'] = numpy.float32
+
+
+print [size for size in FrequencyDetect_output_types.values()]
 
 FrequencyDetect_output_slots = (
-    lambda keys: {k:keys.index(k) for k in keys})(
-    FrequencyDetect_output_types)
+    lambda keys: OrderedDict([(k, keys.index(k)) for k in keys]))(
+    FrequencyDetect_output_types.keys())
 
 class FrequencyDetect(gr.sync_block):
     def __init__(self,
@@ -66,26 +75,38 @@ class FrequencyDetect(gr.sync_block):
         gr.sync_block.__init__(self,
             name="FrequencyDetect",
             in_sig=[(numpy.float32, num_bins)],
-            out_sig=[size for size in FrequencyDetect_output_types.values()])
+            out_sig=[T for T in FrequencyDetect_output_python_types.values()])
 
         center_bin = num_bins / 2
-        offset = (desired_frequency - center_frequency) * 1.0 / resolution
+        offset = (center_frequency - desired_frequency) * 1.0 / resolution
         bandwidth = desired_bandwidth * 1.0 / resolution
-        self.pulse_min_bin = center_bin + floor(offset - bandwidth / 2)
-        self.pulse_max_bin = center_bin + ceil(offset + bandwidth / 2)
+        self.pulse_min_bin = int(center_bin + floor(offset - bandwidth / 2))
+        print 'min bin {0}'.format(self.pulse_min_bin)
+        self.pulse_max_bin = int(center_bin + ceil(offset + bandwidth / 2))
+        print 'max bin {0}'.format(self.pulse_max_bin)
+        self.num_bins = int(num_bins)
 
     def work(self, input_items, output_items):
-        signal_arr = input_items[0][self.pulse_min_bin:self.pulse_max_bin]
+
+        signal_arr = numpy.array([])
+        noise_arr = numpy.array([])
+
+        a, b, c, d = 0, self.pulse_min_bin, self.pulse_max_bin, self.num_bins
+
+        signal_arr = numpy.array(input_items[0][0,b:c])
         noise_arr = numpy.concatenate((
-            input_items[0][0:self.pulse_min_bin],
-            input_items[0][self.pulse_max_bin:num_bins]))
+            numpy.array(input_items[0][0,a:b]),
+            numpy.array(input_items[0][0,c:d])))
 
         noise_estimate = numpy.mean(noise_arr)
         signal_estimate = numpy.mean(signal_arr)
         noise_std = numpy.std(noise_arr)
-        
+    
         snr = signal_estimate / noise_estimate
-        confidence = snr / noise_std
+        confidence = signal_estimate / noise_std # NOT CORRECT!
+
+        if snr > 10:
+            print snr
 
         output_slots = FrequencyDetect_output_slots
         output_items[output_slots['snr']][0] = snr
@@ -94,4 +115,4 @@ class FrequencyDetect(gr.sync_block):
         output_items[output_slots['noise std']][0] = noise_std
         output_items[output_slots['confidence']][0] = confidence
 
-        return len(input_items[0])
+        return 1
