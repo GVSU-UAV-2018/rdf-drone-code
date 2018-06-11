@@ -58,40 +58,45 @@ FrequencyDetect_output_python_types['noise std'] = numpy.float32
 FrequencyDetect_output_python_types['confidence'] = numpy.float32
 
 
-print [size for size in FrequencyDetect_output_types.values()]
-
 FrequencyDetect_output_slots = (
     lambda keys: OrderedDict([(k, keys.index(k)) for k in keys]))(
     FrequencyDetect_output_types.keys())
 
 class FrequencyDetect(gr.sync_block):
     def __init__(self,
-        resolution,
         num_bins,
         center_frequency,
-        desired_frequency,
-        desired_bandwidth):
+        signal_frequency,
+        signal_bandwidth):
 
         gr.sync_block.__init__(self,
             name="FrequencyDetect",
             in_sig=[(numpy.float32, num_bins)],
             out_sig=[T for T in FrequencyDetect_output_python_types.values()])
 
-        center_bin = num_bins / 2
-        offset = (center_frequency - desired_frequency) * 1.0 / resolution
-        bandwidth = desired_bandwidth * 1.0 / resolution
-        self.pulse_min_bin = int(center_bin + floor(offset - bandwidth / 2))
-        print 'min bin {0}'.format(self.pulse_min_bin)
-        self.pulse_max_bin = int(center_bin + ceil(offset + bandwidth / 2))
-        print 'max bin {0}'.format(self.pulse_max_bin)
-        self.num_bins = int(num_bins)
+        self.num_bins = num_bins
+        self.center_frequency = center_frequency
+        self.signal_frequency = signal_frequency
+        self.signal_bandwidth = signal_bandwidth
+
+
+
+    def set_resolution(self, resolution):
+        self.resolution = resolution
+        center = self.num_bins / 2
+        offset = (self.center_frequency - self.signal_frequency) * 1.0 / resolution
+        bandwidth = self.signal_bandwidth * 1.0 / resolution
+        self.signal_min_bin = int(center + floor(offset - bandwidth / 2))
+        self.signal_max_bin = int(center + ceil(offset + bandwidth / 2))
+
+
 
     def work(self, input_items, output_items):
 
         signal_arr = numpy.array([])
         noise_arr = numpy.array([])
 
-        a, b, c, d = 0, self.pulse_min_bin, self.pulse_max_bin, self.num_bins
+        a, b, c, d = 0, self.signal_min_bin, self.signal_max_bin, self.num_bins
 
         signal_arr = numpy.array(input_items[0][0,b:c])
         noise_arr = numpy.concatenate((

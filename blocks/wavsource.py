@@ -11,18 +11,15 @@ This index is output with each point in the sample.
     |  ,----------.   ,------------------.   ,----------.  |
     |  | wav file |-->| float-to-complex |-->| throttle |--|--> radio signal
     |  `----------'   `------------------'   `----------'  |
-    |                    ,-------------------.   ,------.  |
-    |                    | index of wav file |-->| copy |--|--> index
-    |                    `-------------------'   `------'  |
+    |                               ,-------------------.  |
+    |                               | index of wav file |--|--> index
+    |                               `-------------------'  |
     `------------------------------------------------------'
-    The |copy| block in this flowgraph is there to work around a GNU radio bug.
-    Blocks connected to the output of a hierarchical block do not disconnect correctly.
-
 """
 
 class WavSource(gr.hier_block2):
 
-    def __init__(self, radio_config, playback_folder, throttle=True):
+    def __init__(self, playback_folder, throttle=True):
         """
         :param radio_config:
             The parameters to configure the radio (or in this case, file),
@@ -39,18 +36,16 @@ class WavSource(gr.hier_block2):
         ##################################################
         # Variables
         ##################################################
-        self.sample_rate = radio_config['sample rate']
         self.playback_folder = playback_folder
 
         ##################################################
         # Blocks
         ##################################################
         self.gr_float_to_complex = blocks.float_to_complex()
-        self.gr_throttle = blocks.throttle(gr.sizeof_gr_complex, self.sample_rate)
-        self.gr_copy = blocks.copy(gr.sizeof_float)
+        self.gr_throttle = blocks.throttle(gr.sizeof_gr_complex, 1)
 
         self.gr_wav_source = blocks.null_source(gr.sizeof_float)
-        self.gr_constant = blocks.null_source(gr.sizeof_int)
+        self.gr_constant = blocks.vector_source_i([-1], repeat=True)
 
         ##################################################
         # Connections
@@ -60,26 +55,31 @@ class WavSource(gr.hier_block2):
         else:
             self.connect(self.gr_float_to_complex, (self, 0))
 
-        self.connect(self.gr_copy, (self, 1))
+        self.connect(self.gr_constant, (self, 1))
 
         self.connect((self.gr_wav_source, 0), (self.gr_float_to_complex, 0))
         self.connect((self.gr_wav_source, 1), (self.gr_float_to_complex, 1))
-        self.connect(self.gr_constant, self.gr_copy)
 
 
     def play(self, index):
         self.lock()
 
         self.disconnect(self.gr_wav_source)
-        self.disconnect(self.gr_constant)
 
         self.index = index
         self.gr_wav_source = blocks.wavfile_source(
             self.playback_folder+'/'+str(index)+'.wav')
-        self.gr_constant = blocks.vector_source_i([index], repeat=True)
+        self.gr_constant.set_data([index])
+        
+        self.gr_throttle.set_sample_rate(self.sample_rate())
 
         self.connect((self.gr_wav_source, 0), (self.gr_float_to_complex, 0))
         self.connect((self.gr_wav_source, 1), (self.gr_float_to_complex, 1))
-        self.connect(self.gr_constant, self.gr_copy)
         
         self.unlock()
+    
+    def sample_rate(self):
+        return self.gr_wav_source.sample_rate()
+
+    def finished(self):
+        return self.gr_wav_source.finished()

@@ -45,7 +45,11 @@ RDFRadioProcessing_output_slots = (
 
 class RDFRadioProcessing(gr.hier_block2):
 
-    def __init__(self, detection_config, input_sample_rate):
+    def __init__(self,
+        num_fft_bins,
+        center_frequency,
+        signal_frequency,
+        signal_bandwidth):
         """
         :param detect_config:
             The parameters to configure the signal detection block.
@@ -62,11 +66,10 @@ class RDFRadioProcessing(gr.hier_block2):
         ##################################################
         # Variables
         ##################################################
-        self.input_sample_rate = input_sample_rate
-        self.num_fft_bins = detection_config['fft bins']
-        self.pulse_freq_offset = detection_config['pulse frequency offset']
-        self.pulse_bandwidth = detection_config['pulse bandwidth']
-        self.output_sample_rate = self.input_sample_rate / self.num_fft_bins
+        self.num_fft_bins = num_fft_bins
+        self.center_frequency = center_frequency
+        self.signal_frequency = signal_frequency
+        self.signal_bandwidth = signal_bandwidth
         
         ##################################################
         # Blocks
@@ -82,11 +85,10 @@ class RDFRadioProcessing(gr.hier_block2):
 
         self.gr_mag_squared = blocks.complex_to_mag_squared(self.num_fft_bins)
         self.frequency_detect = FrequencyDetect(
-            resolution=self.input_sample_rate * 1.0 / self.num_fft_bins,
             num_bins=self.num_fft_bins,
-            center_frequency = 0,
-            desired_frequency=self.pulse_freq_offset,
-            desired_bandwidth=self.pulse_bandwidth)
+            center_frequency = self.center_frequency,
+            signal_frequency=self.signal_frequency,
+            signal_bandwidth=self.signal_bandwidth)
 
         self.gr_direction_decimate = blocks.keep_one_in_n(
             gr.sizeof_int,
@@ -111,3 +113,12 @@ class RDFRadioProcessing(gr.hier_block2):
             (self, 1),
             self.gr_direction_decimate,
             (self, RDFRadioProcessing_output_slots['direction']))
+    
+    def set_sample_rate(self, rate):
+        self.lock()
+        self.input_sample_rate = rate
+        self.frequency_detect.set_resolution(self.output_sample_rate())
+        self.unlock()
+    
+    def output_sample_rate(self):
+        return self.input_sample_rate / self.num_fft_bins
