@@ -14,15 +14,15 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 
 
-antenna_data = np.genfromtxt('../GNU Radio OLD/rad_pattern.csv', delimiter=',', skip_header=1)
+#antenna_data = np.genfromtxt('../GNU Radio OLD/rad_pattern.csv', delimiter=',', skip_header=1)
 
-antenna_heading = antenna_data[:,0] * np.pi/180.0
-antenna_heading = np.append(antenna_heading[:-1], antenna_heading[:-1] + np.pi)
-antenna_rad = antenna_data[:,1]
-antenna_rad = np.append(antenna_rad, antenna_rad[-1:1:-1])
+#antenna_heading = antenna_data[:,0] * np.pi/180.0
+#antenna_heading = np.append(antenna_heading[:-1], antenna_heading[:-1] + np.pi)
+#antenna_rad = antenna_data[:,1]
+#antenna_rad = np.append(antenna_rad, antenna_rad[-1:1:-1])
 
 
-data = np.genfromtxt('../samples/rdf/processed', delimiter=',', skip_header=1)
+data = np.genfromtxt('../samples/processed.csv', delimiter=',', skip_header=1)
 
 heading = data[:,5]
 snr = 10*np.log10(data[:,0])
@@ -30,7 +30,7 @@ snr = 10*np.log10(data[:,0])
 heading = heading[snr>10]
 snr = snr[snr>10]
 
-antenna_rad_scaled = antenna_rad - np.max(antenna_rad) + np.max(snr)
+#antenna_rad_scaled = antenna_rad - np.max(antenna_rad) + np.max(snr)
 
 
 snr_by_heading = np.histogram(
@@ -59,7 +59,7 @@ def polar_corr(data1, data2, n_samples):
     data1 = np.append(data1, data1)
     return np.argmax(np.correlate(data1, data2))
 
-print(polar_corr(10**snr_by_heading, 10**antenna_rad_scaled, n_samples=360))
+#print(polar_corr(10**snr_by_heading, 10**antenna_rad_scaled, n_samples=360))
 
 
 
@@ -74,7 +74,7 @@ theta, r = np.mgrid[0:2*np.pi:360j/ANGULAR_RESOLUTION, 1:np.max(snr):100j]
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1, projection='polar')
 ax.pcolormesh(theta, r, H, cmap=plt.cm.Blues)
-ax.scatter(antenna_heading, antenna_rad_scaled, 1, color='#DDDDDD', marker='.')
+#ax.scatter(antenna_heading, antenna_rad_scaled, 1, color='#DDDDDD', marker='.')
 plt.show(block=False)
 
 plt.show()
