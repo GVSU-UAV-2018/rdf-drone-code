@@ -18,6 +18,8 @@ def get_radio_cmdline_config():
     parser = ArgumentParser()
     parser.add_argument('SIGNAL_FREQUENCY', type=int,
         help='Frequency to look for in Hz')
+    parser.add_argument('OUTPUT_FILE',
+        help='Output file')
 
     parser.add_argument('-d', '--direction', type=int,
         default=-1,
@@ -28,6 +30,11 @@ def get_radio_cmdline_config():
     parser.add_argument('-f', '--sample-rate', type=int,
         default=s['sample rate'],
         help='Desired sample rate in samples/second')
+    
+    parser.add_argument('--gains', type=int, nargs='+',
+        default=s['gains'],
+        help='Gain of each amplifier stage, in device units')
+    
     parser.add_argument('-r', '--fft-resolution', type=int,
         default=s['fft resolution'],
         help='Resolution of FFT in bins over the whole sampled band')
