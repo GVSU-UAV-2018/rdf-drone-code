@@ -36,22 +36,22 @@ class RadioSource(gr.hier_block2):
         print('Attempted  ', gains)
         print('Actual     ', actual_gains)
         
-        best_available_sample_rate = min(
-            filter(
-                lambda r: r >= preferred_sample_rate,
-                self.source.get_sample_rates().values()))
+        best_available_sample_rate = min((3000000,))
+#            filter(
+#                lambda r: r >= preferred_sample_rate,
+#                self.source.get_sample_rates().values()))
         self.source.set_sample_rate(best_available_sample_rate)
         print('Selected input sample rate', self.source.get_sample_rate())
-        try:
-            best_available_prefilter = min(
-                filter(
-                    lambda r: r >= preferred_sample_rate,
-                    self.source.get_bandwidth_range().values()))
-            self.source.set_bandwidth(best_available_prefilter)
-        except ValueError:
-            print 'Could not set prefilter'
-            print('Available prefilters: ', self.source.get_bandwidth_range().values())
-        print('Selected prefilter', self.source.get_bandwidth())
+#        try:
+#            best_available_prefilter = min(
+#                filter(
+#                    lambda r: r >= preferred_sample_rate,
+#                    self.source.get_bandwidth_range().values()))
+#            self.source.set_bandwidth(best_available_prefilter)
+#        except ValueError:
+#            print 'Could not set prefilter'
+#            print('Available prefilters: ', self.source.get_bandwidth_range().values())
+#        print('Selected prefilter', self.source.get_bandwidth())
         
         common_rate = gcd(self.source.get_sample_rate(), preferred_sample_rate)
         interpolation = int(preferred_sample_rate / common_rate)

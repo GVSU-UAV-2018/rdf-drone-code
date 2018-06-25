@@ -67,13 +67,13 @@ class Main(gr.top_block):
         self.connect((self.split_into_channels, 0), (self.record, 0))
         self.connect((self.split_into_channels, 1), (self.record, 1))
 
-        self.connect(
-            (self.split_into_channels, 0),
-            blocks.multiply_const_ff(100),
-            gr_filter.rational_resampler_fff(
-                interpolation=48000 / gcd(self.source.sample_rate(), 48000),
-                decimation=self.source.sample_rate() / gcd(self.source.sample_rate(), 48000)),
-            audio.sink(48000))
+#        self.connect(
+#            (self.split_into_channels, 0),
+#            blocks.multiply_const_ff(100),
+#            gr_filter.rational_resampler_fff(
+#                interpolation=48000 / gcd(self.source.sample_rate(), 48000),
+#                decimation=self.source.sample_rate() / gcd(self.source.sample_rate(), 48000)),
+#            audio.sink(48000))
 
         for i in RDFRadioProcessing_output_slots.values():
             self.connect((self.processing, i), (self.sink, i))
