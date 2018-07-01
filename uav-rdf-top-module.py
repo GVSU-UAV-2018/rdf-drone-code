@@ -18,6 +18,44 @@ comp_id = 177
 current_VHF_FREQ = 0.0
 current_VHF_SNR = 12.322
 
+
+def run_scan(msg):
+	global current_VHF_SNR
+	scan_completed = False
+	
+	print "RDF scanning..."
+	sys.stdout.flush()
+	#run top_block 
+	
+	while not scan_completed: #blocking is okay... cancel scan handled by MP
+		#Check for SNR value. Simulate for now
+		time.sleep(3)
+		print "RDF scan complete. VHF_SNR: " + str(current_VHF_SNR)
+		print "Sending VHF_SNR..."
+		sys.stdout.flush()
+		mavlink_con.mav.param_set_send(0, 0, "VHF_SNR", current_VHF_SNR, 9)
+		print "VHF_SNR sent"
+		sys.stdout.flush()
+		scan_completed = True
+	
+def set_vhf_freq(msg):
+	global current_VHF_FREQ
+	
+	print "Setting VHF_FREQ..."
+	sys.stdout.flush()
+	current_VHF_FREQ = msg.param_value
+	print "VHF_FREQ: " + str(current_VHF_FREQ)
+	sys.stdout.flush()
+	
+def send_hb(msg):
+	print "Sending HEARTBEAT..."
+	sys.stdout.flush()
+	mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER, 
+		mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
+	print "HEARTBEAT sent"
+	sys.stdout.flush()
+	
+
 print "Setting up MavLink com on " + connection_string
 print "Setting Pi System ID: " + str(src_id)
 print "Setting Pi Comp ID: " + str(comp_id)
@@ -55,39 +93,3 @@ while True:
 			set_vhf_freq(msg)
 	elif msg_type == 'HEARTBEAT':
 		send_hb(msg)
-		
-def run_scan(msg):
-	global current_VHF_SNR
-	scan_completed = False
-	
-	print "RDF scanning..."
-	sys.stdout.flush()
-	#run top_block 
-	
-	while not scan_completed: #blocking is okay... cancel scan handled by MP
-		#Check for SNR value. Simulate for now
-		time.sleep(3)
-		print "RDF scan complete. VHF_SNR: " + str(current_VHF_SNR)
-		print "Sending VHF_SNR..."
-		sys.stdout.flush()
-		mavlink_con.mav.param_set_send(0, 0, "VHF_SNR", current_VHF_SNR, 9)
-		print "VHF_SNR sent"
-		sys.stdout.flush()
-		scan_completed = True
-	
-def set_vhf_freq(msg):
-	global current_VHF_FREQ
-	
-	print "Setting VHF_FREQ..."
-	sys.stdout.flush()
-	current_VHF_FREQ = msg.param_value
-	print "VHF_FREQ: " + str(current_VHF_FREQ)
-	sys.stdout.flush()
-	
-def send_hb(msg):
-	print "Sending HEARTBEAT..."
-	sys.stdout.flush()
-	mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER, 
-		mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
-	print "HEARTBEAT sent"
-	sys.stdout.flush()
