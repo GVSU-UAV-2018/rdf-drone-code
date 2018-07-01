@@ -8,7 +8,7 @@ if __name__ != '__main__':
 
 import os.path
 from time import sleep
-from fractions import gcd
+from fractions import Fraction
 
 from gnuradio import gr
 from gnuradio import blocks
@@ -40,47 +40,30 @@ class Main(gr.top_block):
             preferred_sample_rate=config.sample_rate,
             gains=config.gains,
             frequency_offset=config.frequency_offset,
-            signal_frequency=config.SIGNAL_FREQUENCY,
-            direction=config.direction)
+            signal_frequency=config.SIGNAL_FREQUENCY)
 
         self.split_into_channels = blocks.complex_to_float()
         self.record = blocks.wavfile_sink(
-            filename=config.record_in+'/'+str(config.direction)+'.wav',
+            filename=config.record_in+'/'+config.recording_filename,
             n_channels=2,
             sample_rate=self.source.sample_rate(),
             bits_per_sample=16)
-            
 
-        self.processing = RDFRadioProcessing(
-            num_fft_bins=config.fft_resolution,
-            center_frequency=0,
-            signal_frequency=config.frequency_offset,
-            signal_bandwidth=config.signal_bandwidth)
-
-        self.sink = SaveToCsv(
-            config.OUTPUT_FILE)
-
-        self.connect((self.source, 0), (self.processing, 0))
-        self.connect((self.source, 1), (self.processing, 1))
-
-        self.connect((self.source, 0), self.split_into_channels)
+        self.connect(self.source, self.split_into_channels)
         self.connect((self.split_into_channels, 0), (self.record, 0))
         self.connect((self.split_into_channels, 1), (self.record, 1))
 
-#        self.connect(
-#            (self.split_into_channels, 0),
-#            blocks.multiply_const_ff(100),
-#            gr_filter.rational_resampler_fff(
-#                interpolation=48000 / gcd(self.source.sample_rate(), 48000),
-#                decimation=self.source.sample_rate() / gcd(self.source.sample_rate(), 48000)),
-#            audio.sink(48000))
-
-        for i in RDFRadioProcessing_output_slots.values():
-            self.connect((self.processing, i), (self.sink, i))
+        audio_resample_rate = Fraction(48000, self.source.sample_rate())
+        self.connect(
+            (self.split_into_channels, 0),
+            blocks.multiply_const_ff(100),
+            gr_filter.rational_resampler_fff(
+                interpolation=int(audio_resample_rate.numerator),
+                decimation=audio_resample_rate.denominator),
+            audio.sink(48000))
 
 main = Main()
 
-main.processing.set_sample_rate(main.source.sample_rate())
 main.start()
 sleep(config.time)
 main.stop()

@@ -3,17 +3,12 @@ from gnuradio import blocks
 from gnuradio import analog
 
 """
-Implements playback of a series of recorded samples.
-Each sample is contained in a file named with the index of the sample.
-This index is output with each point in the sample.
+Implements playback of a recorded sample.
 
     ,------------------------------------------------------.
     |  ,----------.   ,------------------.   ,----------.  |
     |  | wav file |-->| float-to-complex |-->| throttle |--|--> radio signal
     |  `----------'   `------------------'   `----------'  |
-    |                               ,-------------------.  |
-    |                               | index of wav file |--|--> index
-    |                               `-------------------'  |
     `------------------------------------------------------'
 """
 
@@ -31,7 +26,7 @@ class WavSource(gr.hier_block2):
         """
         gr.hier_block2.__init__(self, "Wav Source",
             gr.io_signature(0, 0, gr.sizeof_gr_complex),
-            gr.io_signature2(2, 2, gr.sizeof_gr_complex, gr.sizeof_int))
+            gr.io_signature2(1, 1, gr.sizeof_gr_complex))
 
         ##################################################
         # Variables
@@ -45,31 +40,27 @@ class WavSource(gr.hier_block2):
         self.gr_throttle = blocks.throttle(gr.sizeof_gr_complex, 1)
 
         self.gr_wav_source = blocks.null_source(gr.sizeof_float)
-        self.gr_constant = blocks.vector_source_i([-1], repeat=True)
 
         ##################################################
         # Connections
         ##################################################
         if throttle:
-            self.connect(self.gr_float_to_complex, self.gr_throttle, (self, 0))
+            self.connect(self.gr_float_to_complex, self.gr_throttle, self)
         else:
-            self.connect(self.gr_float_to_complex, (self, 0))
-
-        self.connect(self.gr_constant, (self, 1))
+            self.connect(self.gr_float_to_complex, self)
 
         self.connect((self.gr_wav_source, 0), (self.gr_float_to_complex, 0))
         self.connect((self.gr_wav_source, 1), (self.gr_float_to_complex, 1))
 
 
-    def play(self, index):
+    def play(self, filename):
         self.lock()
 
         self.disconnect(self.gr_wav_source)
 
         self.index = index
         self.gr_wav_source = blocks.wavfile_source(
-            self.playback_folder+'/'+str(index)+'.wav')
-        self.gr_constant.set_data([index])
+            self.playback_folder+'/'+filename)
         
         self.gr_throttle.set_sample_rate(self.sample_rate())
 

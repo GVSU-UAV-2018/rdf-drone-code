@@ -27,17 +27,12 @@ of the received signal.
                    | '->|  squared  |-->|  detect   |--|--> -. statistics about
                    |    `-----------'   |           |--|--> -'  received signal
                    |                    `-----------'  |
-                   |            ,----------.           |
-       direction --|----------->| decimate |-----------|--> direction
-                   |            `----------'           |
                    `-----------------------------------'
 """
 
 RDFRadioProcessing_output_types = FrequencyDetect_output_types.copy()
-RDFRadioProcessing_output_types['direction'] = gr.sizeof_int
 
 RDFRadioProcessing_output_python_types = FrequencyDetect_output_python_types.copy()
-RDFRadioProcessing_output_python_types['direction'] = numpy.int32
 
 RDFRadioProcessing_output_slots = (
     lambda keys: OrderedDict([(k, keys.index(k)) for k in keys]))(
@@ -57,7 +52,7 @@ class RDFRadioProcessing(gr.hier_block2):
             The sample rate, in Hz
         """
         gr.hier_block2.__init__(self, 'RDFRadioProcessing',
-            gr.io_signature2(2, 2, gr.sizeof_gr_complex, gr.sizeof_int),
+            gr.io_signature(1, 1, gr.sizeof_gr_complex),
             gr.io_signaturev(
                 len(RDFRadioProcessing_output_types),
                 len(RDFRadioProcessing_output_types),
@@ -90,15 +85,11 @@ class RDFRadioProcessing(gr.hier_block2):
             signal_frequency=self.signal_frequency,
             signal_bandwidth=self.signal_bandwidth)
 
-        self.gr_direction_decimate = blocks.keep_one_in_n(
-            gr.sizeof_int,
-            self.num_fft_bins)
-
         ##################################################
         # Connections
         ##################################################
         self.connect(
-            (self, 0),
+            self,
             self.gr_vectorize,
             self.gr_fft,
             self.gr_mag_squared,
@@ -108,11 +99,6 @@ class RDFRadioProcessing(gr.hier_block2):
             self.connect(
                 (self.frequency_detect, FrequencyDetect_output_slots[k]),
                 (self, FrequencyDetect_output_slots[k]))
-
-        self.connect(
-            (self, 1),
-            self.gr_direction_decimate,
-            (self, RDFRadioProcessing_output_slots['direction']))
     
     def set_sample_rate(self, rate):
         self.lock()

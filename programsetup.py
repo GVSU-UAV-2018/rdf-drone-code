@@ -18,12 +18,7 @@ def get_radio_cmdline_config():
     parser = ArgumentParser()
     parser.add_argument('SIGNAL_FREQUENCY', type=int,
         help='Frequency to look for in Hz')
-    parser.add_argument('OUTPUT_FILE',
-        help='Output file')
 
-    parser.add_argument('-d', '--direction', type=int,
-        default=-1,
-        help='Direction antenna is pointing during sampling, in degrees')
     parser.add_argument('-t', '--time', type=int,
         default=s['hold time'],
         help='Time to run sampling, in seconds')
@@ -42,9 +37,12 @@ def get_radio_cmdline_config():
         default=s['signal bandwidth'],
         help='Signal bandwidth in Hz')
 
+    parser.add_argument('-o', '--recording-filename',
+        default='test-sample.wav',
+        help='Name of file to record to')
     parser.add_argument('--record-in',
         default=file_config['recording']['recording folder'],
-        help='Record to the file <direction>.wav in the given recording folder')
+        help='Save recordings in the given recording folder')
     parser.add_argument('--frequency-offset', type=int,
         default=s['frequency offset'],
         help='Offset of the tuner frequency from the search frequency, in Hz')

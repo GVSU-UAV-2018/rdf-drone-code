@@ -20,11 +20,19 @@ class SaveToCsv(gr.sync_block):
         self.data_file = open(filename, "w")
         print filename
         self.data_recorder = csv.writer(self.data_file)
-        self.data_recorder.writerow(RDFRadioProcessing_output_slots.keys())
+        self.data_recorder.writerow(
+            RDFRadioProcessing_output_slots.keys() + ['direction'])
+        self.direction = -1
 
     def work(self, input_items, output_items):
         self.data_recorder.writerow(
             [input_items[i][0]
-                for i in RDFRadioProcessing_output_slots.values()])
+                for i in RDFRadioProcessing_output_slots.values()]
+            + [self.direction])
 
         return 1
+
+def set_direction(self, direction):
+    self.lock()
+    self.direction = direction
+    self.unlock()
