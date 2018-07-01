@@ -46,10 +46,10 @@ def run_scan(msg):
 		#Check for SNR value. Simulate for now
 		snr_good = 0.0
 		snr_good_count = 0
-		time.sleep(5) #make this configurable
+		time.sleep(snr_wait_time) #make this configurable
 		
 		for x in SNRExtract.snr_samples:
-			if x > 5: #make this configurable too
+			if x > snr_threshold: #make this configurable too
 				snr_good += x
 				snr_good_count += 1
 		if snr_good_count > 0:
