@@ -8,6 +8,7 @@
 '''
 import time
 import sys
+import configparser
 from pymavlink import mavutil
 
 from snrextract import SNRExtract
@@ -18,7 +19,19 @@ src_id = 1
 comp_id = 177
 
 current_VHF_FREQ = 0.0
-current_VHF_SNR = 12.322
+current_VHF_SNR = 0.0
+
+snr_wait_time = 5
+snr_threshold = 5
+
+def _get_file_config():
+    parser = ConfigParser()
+    with open('../settings.ini', 'r') as config_file:
+        parser.readfp(config_file)
+
+    return {
+        section_name:{k:eval(v) for k,v in parser.items(section_name)}
+            for section_name in parser.sections()}
 
 
 def run_scan(msg):
@@ -89,6 +102,10 @@ mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER,
 print "HEARTBEAT sent" 
 sys.stdout.flush()
 
+file_config = _get_file_config()
+s = file_config['signal detection']
+snr_threshold = s['snr_threshold']
+snr_wait_time = s['hold time']	
 while True:
 	print "Listenting for MavLink message..."
 	sys.stdout.flush()
