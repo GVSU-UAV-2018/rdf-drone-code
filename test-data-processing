@@ -47,10 +47,7 @@ class Main(gr.top_block):
         self.sink = SaveToCsv(
             config.OUTPUT_FILE)
 
-        self.connect((self.source, 0), (self.processing, 0))
-        self.connect((self.source, 1), (self.processing, 1))
-
-        self.connect((self.source, 0), blocks.complex_to_real(), blocks.multiply_const_ff(1), audio.sink(48000))
+        self.connect(self.source, self.processing)
 
         for i in RDFRadioProcessing_output_slots.values():
             self.connect((self.processing, i), (self.sink, i))
@@ -59,7 +56,8 @@ main = Main()
 
 for direction in directions:
     print 'direction: {0}'.format(direction)
-    main.source.play(direction)
+    main.source.play(str(direction)+'.wav')
+    main.sink.set_direction(direction)
     main.processing.set_sample_rate(main.source.sample_rate())
     main.start()
     main.wait()
