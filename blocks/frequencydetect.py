@@ -29,13 +29,13 @@ Outputs:
     * standard deviation of the power in the noise bins
     * a measure of confidence that there is a significant signal
 
-                              .      :       :                     estimated
-                              .      :       :                  ,- signal power
-                              .      :   A   :                 /   density
-                              .      :``/`\``:`````````````````
-~~~^~^~~^~^~^^~~~^~^~^~^^^~~^~.^~^~~~:~'   '~:~~~^~^~^^^^~~^~``\   estimated
+                              .       :     :                      estimated
+                              .       :     :                   ,- signal power
+                              .       :  A  :                  /   density
+                              .       :`/`\`:``````````````````
+~~~^~^~~^~^~^^~~~^~^~^~^^^~~^~.^~^~~~~:'   ':~~~~^~^~^^^^~~^~``\   estimated
                               .                                 '- noise power
-'------------------.----------------''---.---''------.------'      density
+'------------------.-----------------''--.--''-------.------'      density
                    |          .          |           |
               noise band      .    signal band   noise band
                               |
@@ -84,7 +84,7 @@ class FrequencyDetect(gr.sync_block):
     def set_resolution(self, resolution):
         self.resolution = resolution
         center = self.num_bins / 2
-        offset = (self.center_frequency - self.signal_frequency) * 1.0 / resolution
+        offset = (self.signal_frequency - self.center_frequency) * 1.0 / resolution
         bandwidth = self.signal_bandwidth * 1.0 / resolution
         self.signal_min_bin = int(center + floor(offset - bandwidth / 2))
         self.signal_max_bin = int(center + ceil(offset + bandwidth / 2))

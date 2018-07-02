@@ -22,7 +22,6 @@ from blocks.top_level_radio_processing import RDFRadioProcessing
 from blocks.top_level_radio_processing import RDFRadioProcessing_output_types
 from blocks.top_level_radio_processing import RDFRadioProcessing_output_slots
 from blocks.save_to_csv import SaveToCsv
-from blocks.tonesource import ToneSource
 
 config = programsetup.get_radio_cmdline_config()
 print(config)
