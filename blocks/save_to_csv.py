@@ -32,7 +32,5 @@ class SaveToCsv(gr.sync_block):
 
         return 1
 
-def set_direction(self, direction):
-    self.lock()
-    self.direction = direction
-    self.unlock()
+    def set_direction(self, direction):
+        self.direction = direction

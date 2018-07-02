@@ -26,7 +26,7 @@ class WavSource(gr.hier_block2):
         """
         gr.hier_block2.__init__(self, "Wav Source",
             gr.io_signature(0, 0, gr.sizeof_gr_complex),
-            gr.io_signature2(1, 1, gr.sizeof_gr_complex))
+            gr.io_signature(1, 1, gr.sizeof_gr_complex))
 
         ##################################################
         # Variables
@@ -58,7 +58,6 @@ class WavSource(gr.hier_block2):
 
         self.disconnect(self.gr_wav_source)
 
-        self.index = index
         self.gr_wav_source = blocks.wavfile_source(
             self.playback_folder+'/'+filename)
         
