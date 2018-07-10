@@ -1,0 +1,81 @@
+#! /usr/bin/env python2
+
+import sys
+import os
+import signal
+import time
+import atexit
+
+RUNDIR = '/home/chris/Documents/GVSU/Capstone/vhf-tracker'
+COMMAND = ['python2', 'test-watchdog']
+STARTUP_WAIT = 5
+HEARTBEAT_MAX_INTERVAL = 5
+HEARTBEAT_PIPE_NAME = '/tmp/gvsu-rdf-alive'
+
+
+n_kills = 0
+def try_kill_if_running(pid):
+    global n_kills
+    print('Killing pid {0} ({1})...'.format(pid, n_kills))
+    n_kills += 1
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError as e:
+        print('Failed to kill '+str(pid)+': '+os.strerror(e.errno))
+    return 0
+
+n_starts = 0
+def start_program(args):
+    global n_starts
+    pid = os.spawnvp(os.P_NOWAIT, args[0], args)
+    print('Starting {0} (pid {1}) ({2}) ...'.format(args, pid, n_starts))
+    n_starts += 1
+    time.sleep(STARTUP_WAIT)
+    print('Started!')
+    return pid
+
+def read_heartbeat(f):
+    try:
+        return os.read(f, 1)
+    except OSError as e:
+        return ''
+
+
+n_died = 0
+current_program = 0
+def on_SIGCHLD(_, __):
+    global n_died
+    global current_program
+    pid, status = os.wait()
+    print('pid {0} died ({1})'.format(pid, n_died))
+    n_died += 1
+    while(len(read_heartbeat(HEARTBEAT_PIPE)) > 0):
+        pass # flush heartbeat pipe
+    current_program = start_program(COMMAND)
+
+def on_SIGTERM(_, __):
+    os.unlink(HEARTBEAT_PIPE_NAME)
+    sys.exit()
+
+
+os.chdir(RUNDIR)
+print('Working in folder {0}'.format(os.getcwd()))
+os.mkfifo(HEARTBEAT_PIPE_NAME)
+HEARTBEAT_PIPE = os.open(HEARTBEAT_PIPE_NAME, os.O_RDONLY | os.O_NONBLOCK)
+atexit.register(lambda: os.unlink(HEARTBEAT_PIPE_NAME))
+signal.signal(signal.SIGTERM, on_SIGTERM)
+signal.signal(signal.SIGCHLD, on_SIGCHLD)
+
+last_time = 0
+current_program = start_program(COMMAND)
+
+while(True):
+    time.sleep(0.1)
+    received = read_heartbeat(HEARTBEAT_PIPE)
+    if len(received) > 0:
+        print('(pid {0}): {1}'.format(current_program, received))
+        last_time = time.time()
+    else:
+        if time.time() - last_time > HEARTBEAT_MAX_INTERVAL:
+            print('Heartbeat stopped?')
+            current_program = try_kill_if_running(current_program)
