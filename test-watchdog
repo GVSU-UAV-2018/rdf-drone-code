@@ -1,0 +1,16 @@
+#! /usr/bin/env python2
+
+import os
+import time
+import random
+
+HEARTBEAT_PIPE_NAME = '/tmp/gvsu-rdf-alive'
+HEARTBEAT_PIPE = os.open(HEARTBEAT_PIPE_NAME, os.O_WRONLY | os.O_NONBLOCK)
+
+random.seed(time.clock())
+
+for i in range(3):
+    t = random.randrange(8)
+    os.write(HEARTBEAT_PIPE, '0123456789'[t])
+    time.sleep(t)
+os.write(HEARTBEAT_PIPE, '#')
