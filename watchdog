@@ -6,8 +6,8 @@ import signal
 import time
 import atexit
 
-RUNDIR = '/home/chris/Documents/GVSU/Capstone/vhf-tracker'
-COMMAND = ['python2', 'test-watchdog']
+RUNDIR = '/home/pi/rdf-drone-code'
+COMMAND = ['python2', 'uav-rdf-top-module.py']
 STARTUP_WAIT = 5
 HEARTBEAT_MAX_INTERVAL = 5
 HEARTBEAT_PIPE_NAME = '/tmp/gvsu-rdf-alive'
