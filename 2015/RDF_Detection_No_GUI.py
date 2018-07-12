@@ -51,7 +51,7 @@ class RDF_Detection_No_GUI(gr.top_block):
             gains=self.gains,
             frequency_offset=3000,
             signal_frequency=self.collar_freq,
-            0)
+            direction=0)
         #self.fcdproplus_fcdproplus_0 = fcdproplus.fcdproplus("",1)
         #self.fcdproplus_fcdproplus_0.set_lna(1)
         #self.fcdproplus_fcdproplus_0.set_mixer_gain(1)
@@ -59,7 +59,7 @@ class RDF_Detection_No_GUI(gr.top_block):
         #self.fcdproplus_fcdproplus_0.set_freq_corr(0)
         #self.fcdproplus_fcdproplus_0.set_freq(collar_freq - 3000)
         
-		self.fft_vxx_0 = fft.fft_vfc(512, True, (window.rectangular(512)), 1)
+        self.fft_vxx_0 = fft.fft_vfc(512, True, (window.rectangular(512)), 1)
         self.collar_detect_Burst_Detection_0 = collar_detect.Burst_Detection(SNR)
         self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_float*1, 512)
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(512)
