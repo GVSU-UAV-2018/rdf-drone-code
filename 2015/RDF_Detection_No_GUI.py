@@ -46,7 +46,7 @@ class RDF_Detection_No_GUI(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-		self.source = RadioSource(
+        self.source = RadioSource(
             preferred_sample_rate=self.samp_rate,
             gains=self.gains,
             frequency_offset=3000,
@@ -125,8 +125,8 @@ sigproc = RDF_Detection_No_GUI()
 
 while True:
     sigproc.start()
-	time.sleep()
-	sigproc.stop()
-	sigproc.wait()
+    time.sleep()
+    sigproc.stop()
+    sigproc.wait()
     detection = sigproc.collar_detect_Burst_Detection_0.get_detection()
-	print "SNR: " + string(detection)
+    print "SNR: " + string(detection)
