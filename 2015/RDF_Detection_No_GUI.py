@@ -15,7 +15,7 @@ from gnuradio.fft import window
 from gnuradio.filter import firdes
 from optparse import OptionParser
 from radiosource import RadioSource
-import collar_detect
+from collar_detect import collar_detect
 import sys
 import time
 import time
@@ -60,7 +60,7 @@ class RDF_Detection_No_GUI(gr.top_block):
         #self.fcdproplus_fcdproplus_0.set_freq(collar_freq - 3000)
         
         self.fft_vxx_0 = fft.fft_vfc(512, True, (window.rectangular(512)), 1)
-        self.collar_detect_Burst_Detection_0 = collar_detect.Burst_Detection(SNR)
+        self.collar_detect_Burst_Detection_0 = collar_detect()
         self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_float*1, 512)
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(512)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
@@ -125,8 +125,6 @@ sigproc = RDF_Detection_No_GUI()
 
 while True:
     sigproc.start()
-    time.sleep()
+    time.sleep(5)
     sigproc.stop()
     sigproc.wait()
-    detection = sigproc.collar_detect_Burst_Detection_0.get_detection()
-    print "SNR: " + string(detection)
