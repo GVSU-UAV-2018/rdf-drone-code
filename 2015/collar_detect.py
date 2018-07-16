@@ -28,36 +28,40 @@ from scipy import signal
 from gnuradio import gr
 
 i = 0
-fft_size = 512
 num_windows = 190 #31
+
 var_avg = 0.0
 var_avg_temp = 0.0
 prev_time = 0.0
-collar_offset = 3000
-sample_rate = 93750.0
-collar_bandwidth = 1000.0
 
-resolution = sample_rate / fft_size
-center = fft_size / 2
-offset = collar_offset * 1.0 / resolution
-bandwidth = collar_bandwidth * 1.0 / resolution
-min_bin = int(center + math.floor(offset - bandwidth / 2))
-max_bin = int(center + math.ceil(offset + bandwidth / 2))
 #max_bin = int(((collar_offset+collar_bandwidth/2)/sample_rate) * fft_size) #I'm not sure about this
 #min_bin = int(((collar_offset-collar_bandwidth/2)/sample_rate) * fft_size)
-
 
 class collar_detect(gr.sync_block):
     """
     docstring for block collar_detect
     """
-    def __init__(self):
+    def __init__(self, sample_rate, fft_size, collar_offset, bandwidth, SNR):
         gr.sync_block.__init__(self,
             name="collar_detect",
             in_sig=[(numpy.float32,fft_size)],
             out_sig=None)
-        print "Min bin: " + str(min_bin)
-        print "Max bin: " + str(max_bin)
+        
+        self.sample_rate = sample_rate
+        self.fft_size = fft_size
+        self.collar_offset = collar_offset
+        self.bandwidth = bandwidth
+        self.SNR = SNR
+
+        resolution = self.sample_rate / self.fft_size
+        center = self.fft_size / 2
+        offset = self.collar_offset * 1.0 / resolution
+        bandwidth = self.bandwidth * 1.0 / resolution
+        self.min_bin = int(center + math.floor(offset - bandwidth / 2))
+        self.max_bin = int(center + math.ceil(offset + bandwidth / 2))
+
+        print "Min bin: " + str(self.min_bin)
+        print "Max bin: " + str(self.max_bin)
 
     def work(self, input_items, output_items):
         global var_avg
@@ -68,19 +72,19 @@ class collar_detect(gr.sync_block):
 	global var_avg_temp
 	in0 = input_items[0]
 	
-	noise_mean = numpy.mean(in0[0][min_bin:max_bin])
-	noise_norm = numpy.asarray(in0[0][min_bin:max_bin]) - noise_mean
+	noise_mean = numpy.mean(in0[0][self.min_bin:self.max_bin])
+	noise_norm = numpy.asarray(in0[0][self.min_bin:self.max_bin]) - noise_mean
 	noise_var = numpy.var(noise_norm)
 	
-	if(i<190):
+	if(i<num_windows):
 		var_avg_temp = var_avg_temp + noise_var
 		i = i + 1	
 	else:
-		var_avg = var_avg_temp / 190
+		var_avg = var_avg_temp / num_windows
 		var_avg_temp = 0.0
 		i = 0
 	
-	if(noise_var > 5*var_avg):
+	if(noise_var > self.SNR*var_avg):
 	#	print numpy.max(noise_norm)
                 print noise_var / var_avg
 	

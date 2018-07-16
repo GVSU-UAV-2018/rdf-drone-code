@@ -26,7 +26,7 @@ samp_rate = 93750
 collar_freq = 151823000
 freq_offset = 3000
 bandwidth = 1000
-gains = [1, 1, 15] #LNA: 1, MIXER: 1, IF: 20 as per prev group
+gains = [8, 8, 15] #[1, 1, 15] #LNA: 1, MIXER: 1, IF: 20 as per prev group
 SNR = 5.0
 
 class RDF_Detection_No_GUI(gr.top_block):
@@ -43,12 +43,14 @@ class RDF_Detection_No_GUI(gr.top_block):
         global freq_offset
         global bandwidth	
         global gains
+        global SNR
         self.fft_size = fft_size
         self.samp_rate = samp_rate
         self.collar_freq = collar_freq 
         self.freq_offset = freq_offset
         self.bandwidth = bandwidth
         self.gains = gains
+        self.SNR = SNR
 
         ##################################################
         # Blocks
@@ -66,7 +68,8 @@ class RDF_Detection_No_GUI(gr.top_block):
         #self.fcdproplus_fcdproplus_0.set_freq(collar_freq - 3000)
         
         self.fft_vxx_0 = fft.fft_vfc(self.fft_size, True, (window.rectangular(self.fft_size)), 1)
-        self.collar_detect_Burst_Detection_0 = collar_detect()
+        self.collar_detect_Burst_Detection_0 = collar_detect(self.samp_rate, self.fft_size, 
+            self.freq_offset, self.bandwidth, self.SNR)
         self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_float*1, self.fft_size)
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(self.fft_size)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
