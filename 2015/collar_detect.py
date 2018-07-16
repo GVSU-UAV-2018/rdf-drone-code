@@ -21,6 +21,7 @@
 
 import scipy
 import numpy
+import math
 from scipy import fftpack
 from scipy import stats
 from scipy import signal
@@ -40,8 +41,8 @@ resolution = sample_rate / fft_size
 center = fft_size / 2
 offset = collar_offset * 1.0 / resolution
 bandwidth = collar_bandwidth * 1.0 / resolution
-min_bin = int(center + floor(offset - bandwidth / 2))
-max_bin = int(center + ceil(offset + bandwidth / 2))
+min_bin = int(center + math.floor(offset - bandwidth / 2))
+max_bin = int(center + math.ceil(offset + bandwidth / 2))
 #max_bin = int(((collar_offset+collar_bandwidth/2)/sample_rate) * fft_size) #I'm not sure about this
 #min_bin = int(((collar_offset-collar_bandwidth/2)/sample_rate) * fft_size)
 
@@ -55,7 +56,8 @@ class collar_detect(gr.sync_block):
             name="collar_detect",
             in_sig=[(numpy.float32,fft_size)],
             out_sig=None)
-
+        print "Min bin: " + str(min_bin)
+        print "Max bin: " + str(max_bin)
 
     def work(self, input_items, output_items):
         global var_avg
@@ -79,7 +81,8 @@ class collar_detect(gr.sync_block):
 		i = 0
 	
 	if(noise_var > 5*var_avg):
-		print numpy.max(noise_norm)
+	#	print numpy.max(noise_norm)
+                print noise_var / var_avg
 	
 	return len(input_items[0])
 

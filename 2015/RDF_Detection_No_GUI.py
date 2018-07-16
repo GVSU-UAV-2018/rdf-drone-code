@@ -23,10 +23,10 @@ import math
 
 fft_size = 512
 samp_rate = 93750
-collar_freq = 150801000
+collar_freq = 151823000
 freq_offset = 3000
 bandwidth = 1000
-gains = [1, 1, 20] #LNA: 1, MIXER: 1, IF: 20 as per prev group
+gains = [1, 1, 15] #LNA: 1, MIXER: 1, IF: 20 as per prev group
 SNR = 5.0
 
 class RDF_Detection_No_GUI(gr.top_block):
@@ -37,18 +37,18 @@ class RDF_Detection_No_GUI(gr.top_block):
         ##################################################
         # Variables
         ##################################################
-    global fft_size
-	global samp_rate
-	global collar_freq
-    global freq_offset
-    global bandwidth	
-	global gains
-	    self.fft_size = fft_size
+        global fft_size
+        global samp_rate
+        global collar_freq
+        global freq_offset
+        global bandwidth	
+        global gains
+        self.fft_size = fft_size
         self.samp_rate = samp_rate
         self.collar_freq = collar_freq 
         self.freq_offset = freq_offset
-		self.bandwidth = bandwidth
-		self.gains = gains
+        self.bandwidth = bandwidth
+        self.gains = gains
 
         ##################################################
         # Blocks
@@ -71,7 +71,7 @@ class RDF_Detection_No_GUI(gr.top_block):
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(self.fft_size)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
         self.blocks_complex_to_mag_0 = blocks.complex_to_mag(self.fft_size)
-        self.band_pass_filter_0 = filter.fir_filter_ccf(12, firdes.band_pass(
+        self.band_pass_filter_0 = filter.fir_filter_ccf(1, firdes.band_pass( #1 instead of 12 to keep 93750 rate
             100, self.samp_rate, self.freq_offset - (self.bandwidth / 2),
             self.freq_offset + (self.bandwidth / 2), 600, firdes.WIN_RECTANGULAR, 6.76))
 
