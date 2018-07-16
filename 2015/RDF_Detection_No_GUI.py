@@ -21,9 +21,12 @@ import time
 import time
 import math
 
+fft_size = 512
 samp_rate = 93750
-collar_freq = 151823000
-gains = [20, 1, 1] #LNA: 1, MIXER: 1, IF: 20 as per prev group
+collar_freq = 150801000
+freq_offset = 3000
+bandwidth = 1000
+gains = [1, 1, 20] #LNA: 1, MIXER: 1, IF: 20 as per prev group
 SNR = 5.0
 
 class RDF_Detection_No_GUI(gr.top_block):
@@ -34,14 +37,18 @@ class RDF_Detection_No_GUI(gr.top_block):
         ##################################################
         # Variables
         ##################################################
+    global fft_size
 	global samp_rate
-	global collar_freq 
+	global collar_freq
+    global freq_offset
+    global bandwidth	
 	global gains
-	global SNR
+	    self.fft_size = fft_size
         self.samp_rate = samp_rate
-        self.gains = gains
         self.collar_freq = collar_freq 
-        self.SNR = SNR
+        self.freq_offset = freq_offset
+		self.bandwidth = bandwidth
+		self.gains = gains
 
         ##################################################
         # Blocks
@@ -49,24 +56,24 @@ class RDF_Detection_No_GUI(gr.top_block):
         self.source = RadioSource(
             preferred_sample_rate=self.samp_rate,
             gains=self.gains,
-            frequency_offset=3000,
-            signal_frequency=self.collar_freq,
-            direction=0)
+            frequency_offset=self.freq_offset,
+            signal_frequency=self.collar_freq)
         #self.fcdproplus_fcdproplus_0 = fcdproplus.fcdproplus("",1)
         #self.fcdproplus_fcdproplus_0.set_lna(1)
         #self.fcdproplus_fcdproplus_0.set_mixer_gain(1)
-        #self.fcdproplus_fcdproplus_0.set_if_gain(gain)
+        #self.fcdproplus_fcdproplus_0.set_if_gain(gain) #20
         #self.fcdproplus_fcdproplus_0.set_freq_corr(0)
         #self.fcdproplus_fcdproplus_0.set_freq(collar_freq - 3000)
         
-        self.fft_vxx_0 = fft.fft_vfc(512, True, (window.rectangular(512)), 1)
+        self.fft_vxx_0 = fft.fft_vfc(self.fft_size, True, (window.rectangular(self.fft_size)), 1)
         self.collar_detect_Burst_Detection_0 = collar_detect()
-        self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_float*1, 512)
-        self.blocks_multiply_xx_0 = blocks.multiply_vcc(512)
+        self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_float*1, self.fft_size)
+        self.blocks_multiply_xx_0 = blocks.multiply_vcc(self.fft_size)
         self.blocks_complex_to_real_0 = blocks.complex_to_real(1)
-        self.blocks_complex_to_mag_0 = blocks.complex_to_mag(512)
+        self.blocks_complex_to_mag_0 = blocks.complex_to_mag(self.fft_size)
         self.band_pass_filter_0 = filter.fir_filter_ccf(12, firdes.band_pass(
-        	100, samp_rate, 2.5e3, 3.5e3, 600, firdes.WIN_RECTANGULAR, 6.76))
+            100, self.samp_rate, self.freq_offset - (self.bandwidth / 2),
+            self.freq_offset + (self.bandwidth / 2), 600, firdes.WIN_RECTANGULAR, 6.76))
 
         ##################################################
         # Connections
@@ -79,8 +86,6 @@ class RDF_Detection_No_GUI(gr.top_block):
         self.connect((self.fft_vxx_0, 0), (self.blocks_multiply_xx_0, 0))
         self.connect((self.blocks_multiply_xx_0, 0), (self.blocks_complex_to_mag_0, 0))
         self.connect((self.blocks_complex_to_mag_0, 0), (self.collar_detect_Burst_Detection_0, 0))
-
-
 
     '''def get_samp_rate(self):
         return self.samp_rate

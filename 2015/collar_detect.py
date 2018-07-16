@@ -27,14 +27,23 @@ from scipy import signal
 from gnuradio import gr
 
 i = 0
+fft_size = 512
+num_windows = 190 #31
 var_avg = 0.0
 var_avg_temp = 0.0
 prev_time = 0.0
 collar_offset = 3000
-sample_freq_decim = 16000.0
+sample_rate = 93750.0
 collar_bandwidth = 1000.0
-max_bin = int(((collar_offset+collar_bandwidth/2)/sample_freq_decim) * 512)
-min_bin = int(((collar_offset-collar_bandwidth/2)/sample_freq_decim) * 512)
+
+resolution = sample_rate / fft_size
+center = fft_size / 2
+offset = collar_offset * 1.0 / resolution
+bandwidth = collar_bandwidth * 1.0 / resolution
+min_bin = int(center + floor(offset - bandwidth / 2))
+max_bin = int(center + ceil(offset + bandwidth / 2))
+#max_bin = int(((collar_offset+collar_bandwidth/2)/sample_rate) * fft_size) #I'm not sure about this
+#min_bin = int(((collar_offset-collar_bandwidth/2)/sample_rate) * fft_size)
 
 
 class collar_detect(gr.sync_block):
@@ -44,7 +53,7 @@ class collar_detect(gr.sync_block):
     def __init__(self):
         gr.sync_block.__init__(self,
             name="collar_detect",
-            in_sig=[(numpy.float32,512)],
+            in_sig=[(numpy.float32,fft_size)],
             out_sig=None)
 
 
@@ -61,11 +70,11 @@ class collar_detect(gr.sync_block):
 	noise_norm = numpy.asarray(in0[0][min_bin:max_bin]) - noise_mean
 	noise_var = numpy.var(noise_norm)
 	
-	if(i<31):
+	if(i<190):
 		var_avg_temp = var_avg_temp + noise_var
 		i = i + 1	
 	else:
-		var_avg = var_avg_temp / 31
+		var_avg = var_avg_temp / 190
 		var_avg_temp = 0.0
 		i = 0
 	
