@@ -1,0 +1,13 @@
+[Unit]
+Description=vhf-tracker daemon
+After=
+Conflicts=
+
+[Service]
+ExecStart=/opt/vhf-tracker/daemon.sh
+Type=simple
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=default.target
