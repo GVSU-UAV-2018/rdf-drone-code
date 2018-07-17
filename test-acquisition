@@ -59,7 +59,7 @@ class Main(gr.top_block):
             gr_filter.rational_resampler_fff(
                 interpolation=int(audio_resample_rate.numerator),
                 decimation=audio_resample_rate.denominator),
-            audio.sink(48000))
+            audio.sink(48000, 'hw:0,1'))
 
 main = Main()
 

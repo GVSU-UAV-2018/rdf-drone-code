@@ -107,11 +107,8 @@ class FrequencyDetect(gr.sync_block):
         signal_estimate = numpy.mean(signal_arr)
         noise_std = numpy.std(noise_arr)
     
-        snr = signal_estimate / noise_estimate
+        snr = signal_estimate / noise_estimate #SNR = Psig / Pnoise
         confidence = signal_estimate / noise_std # NOT CORRECT!
-
-        if snr > 10:
-            print snr
 
         output_slots = FrequencyDetect_output_slots
         output_items[output_slots['snr']][0] = snr
