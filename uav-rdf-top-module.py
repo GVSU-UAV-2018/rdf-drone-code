@@ -5,6 +5,10 @@
 '
 ' GVSU UAV Team 2018
 '''
+
+import watchdog
+watchdog.keep_alive(5)
+
 import os
 import time
 import sys
@@ -86,6 +90,7 @@ def run_scan():
     sys.stdout.flush()
     
     while not scan_completed: #blocking is okay... cancel scan handled by MP
+        watchdog.keep_alive(snr_wait_time + 5)
         try:
             gr_sigprocessing.start() #start gnu radio processing
             time.sleep(int(snr_wait_time / 2))
@@ -142,6 +147,7 @@ mavlink_con = mavutil.mavlink_connection(connection_string,
 print "Connection ok"
 print "Waiting for drone HEARTBEAT..."
 sys.stdout.flush()
+watchdog.keep_alive(5)
 mavlink_con.wait_heartbeat()
 print "Received drone HEARTBEAT"
 print "Sending initial HEARTBEAT..." 
@@ -159,10 +165,10 @@ while True:
     print "Listenting for MavLink message..."
     sys.stdout.flush()
     
-    #block while waiting for message to be sent. Blocking ok in this context
+    watchdog.keep_alive(5)
     msg = mavlink_con.recv_match(type=messages, blocking=False)
     
-    if not msg == None:
+    if msg is not None:
         msg_type = msg.get_type()
         print "Received " + str(msg_type) + " message"
         sys.stdout.flush()
