@@ -1,5 +1,13 @@
 #! /usr/bin/env bash
 
+
+# Reliably detect the actual folder that the install script is in.
+# Taken from this stackoverflow answer:
+#    https://stackoverflow.com/a/246128/5729206
+SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+
+
 if [[ $EUID -ne 0 ]]
 then
     echo "Install must be run as root."
@@ -14,7 +22,7 @@ fi
 # install files
 mkdir -p /opt/vhf-tracker
 rm -r /opt/vhf-tracker/*
-install "$0"/../* /opt/vhf-tracker/
+install "$SOURCE_DIR" /opt/vhf-tracker/
 
 # install and enable systemd unit file
 ln -s -T /opt/vhf-tracker/vhf-tracker.service /etc/systemd/system/vhf-tracker.service
