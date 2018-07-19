@@ -22,7 +22,8 @@ fi
 # install files
 mkdir -p /opt/vhf-tracker
 rm -r /opt/vhf-tracker/*
-install "$SOURCE_DIR" /opt/vhf-tracker/
+cp -r "$SOURCE_DIR" /opt/vhf-tracker/
+chown -R 0:0 /opt/vhf-tracker
 
 # install and enable systemd unit file
 ln -s -T /opt/vhf-tracker/vhf-tracker.service /etc/systemd/system/vhf-tracker.service
