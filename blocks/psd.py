@@ -7,19 +7,15 @@ from gnuradio import analog
 from gnuradio import fft
 from gnuradio.fft import window
 
-from frequencydetect import FrequencyDetect
-from frequencydetect import FrequencyDetect_output_types
-from frequencydetect import FrequencyDetect_output_python_types
-from frequencydetect import FrequencyDetect_output_slots
-
 """
 Calculates power spectral density (PSD) of a signal.
 
-                   ,--------------------------------------.
-                   |   ,-----------.   ,-----.   ,-----.  |
-    radio signal --|-->| vectorize |-->| FFT |-->| **2 |--|--> PSD vector
-                   |   `-----------'   `-----'   `-----'  |
-                   `--------------------------------------'
+                   ,--------------------------------------------.
+                   |   ,-----------.   ,-----.   ,-----------.  |
+    radio signal --|-->| vectorize |-->| FFT |-->| magnitude |--|--> PSD vector
+                   |   `-----------'   `-----'   |  squared  |  |
+                   |                             `-----------'  |
+                   `--------------------------------------------'
 """
 
 class PowerSpectralDensity(gr.hier_block2):
@@ -29,7 +25,7 @@ class PowerSpectralDensity(gr.hier_block2):
 
         gr.hier_block2.__init__(self, self.__class__.__name__,
             gr.io_signature(1, 1, gr.sizeof_gr_complex),
-            gr.io_signature(1, 1, gr.sizeof_gr_complex * num_fft_bins))
+            gr.io_signature(1, 1, gr.sizeof_float * num_fft_bins))
 
         ##################################################
         # Variables

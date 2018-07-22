@@ -8,6 +8,7 @@ if __name__ != '__main__':
 
 import os.path
 from time import sleep
+from argparse import ArgumentParser
 
 from gnuradio import gr
 from gnuradio import blocks
@@ -15,12 +16,17 @@ from gnuradio import audio
 
 import programsetup
 from blocks.wavsource import WavSource
-from blocks.top_level_radio_processing import RDFRadioProcessing
-from blocks.top_level_radio_processing import RDFRadioProcessing_output_types
-from blocks.top_level_radio_processing import RDFRadioProcessing_output_slots
+from blocks.psd import PowerSpectralDensity
+from blocks.signal_detection_method import select_detection_method
 from blocks.save_to_csv import SaveToCsv
 
-config = programsetup.get_playback_cmdline_config()
+argp = ArgumentParser()
+config_defaults = programsetup.get_file_config()
+programsetup.add_config_section_system(argp, config_defaults['system'])
+programsetup.add_config_section_signal_detection(argp, config_defaults['signal detection'])
+argp.add_argument('INPUT_FOLDER', help='Input folder')
+argp.add_argument('OUTPUT_FILE', help='Output file')
+config = argp.parse_args();
 print(config)
 
 directions = sorted(
@@ -37,19 +43,21 @@ class Main(gr.top_block):
             playback_folder=config.INPUT_FOLDER,
             throttle=True)
 
-        self.processing = RDFRadioProcessing(
-            num_fft_bins=config.fft_resolution,
+        self.psd = PowerSpectralDensity(
+            num_fft_bins=config.fft_resolution)
+
+        self.processing = select_detection_method(config.detection_method)(
+            num_bins=config.fft_resolution,
             center_frequency=0,
             signal_frequency=config.frequency_offset,
-            signal_bandwidth=config.signal_bandwidth)
+            signal_bandwidth=config.signal_bandwidth,
+            threshold=config.snr_threshold,
+            decay_time=config.detection_interval)
 
         self.sink = SaveToCsv(
             config.OUTPUT_FILE)
 
-        self.connect(self.source, self.processing)
-
-        for i in RDFRadioProcessing_output_slots.values():
-            self.connect((self.processing, i), (self.sink, i))
+        self.connect(self.source, self.psd, self.processing, self.sink)
 
 main = Main()
 
@@ -57,6 +65,7 @@ for direction in directions:
     print 'direction: {0}'.format(direction)
     main.source.play(str(direction)+'.wav')
     main.sink.set_direction(direction)
-    main.processing.set_sample_rate(main.source.sample_rate())
+    main.psd.set_sample_rate(main.source.sample_rate())
+    main.processing.set_resolution(main.psd.output_sample_rate())
     main.start()
     main.wait()

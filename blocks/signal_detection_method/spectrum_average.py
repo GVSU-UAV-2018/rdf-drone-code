@@ -52,9 +52,9 @@ class SpectrumAverage(gr.sync_block):
         **extra_args):
 
         gr.sync_block.__init__(self,
-            name="FrequencyDetect",
+            name=self.__class__.__name__,
             in_sig=[(numpy.float32, num_bins)],
-            out_sig=[T for T in FrequencyDetect_output_python_types.values()])
+            out_sig=[(numpy.float32, 1)])
 
         self.num_bins = num_bins
         self.center_frequency = center_frequency

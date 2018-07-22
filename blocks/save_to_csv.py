@@ -1,7 +1,5 @@
 import csv
-from top_level_radio_processing import RDFRadioProcessing_output_types
-from top_level_radio_processing import RDFRadioProcessing_output_python_types
-from top_level_radio_processing import RDFRadioProcessing_output_slots
+import numpy
 
 from gnuradio import gr
 
@@ -14,20 +12,19 @@ class SaveToCsv(gr.sync_block):
 
         gr.sync_block.__init__(self,
             name="SaveToCsv",
-            in_sig=[T for T in RDFRadioProcessing_output_python_types.values()],
+            in_sig=[(numpy.float32, 1)],
             out_sig=[])
 
         self.data_file = open(filename, "w")
         print filename
         self.data_recorder = csv.writer(self.data_file)
         self.data_recorder.writerow(
-            RDFRadioProcessing_output_slots.keys() + ['direction'])
+            ['signal', 'direction'])
         self.direction = -1
 
     def work(self, input_items, output_items):
         self.data_recorder.writerow(
-            [input_items[i][0]
-                for i in RDFRadioProcessing_output_slots.values()]
+            [input_items[i][0] for i in range(len(input_items))]
             + [self.direction])
 
         return 1

@@ -1,3 +1,5 @@
+import sys
+
 from spectrum_average import SpectrumAverage
 from variance import Variance
 
@@ -6,6 +8,8 @@ available_detection_methods = {
     Variance.__name__: Variance}
 
 def select_detection_method(name):
-    if method not in available_detection_methods:
+    if name not in available_detection_methods:
         print('Unrecognized detection method: {}'.format(name))
-    return available_detection_methods[name]
+        sys.exit(-1)
+    else:
+        return available_detection_methods[name]

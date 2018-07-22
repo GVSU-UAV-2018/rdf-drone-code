@@ -83,10 +83,11 @@ class Variance(gr.sync_block):
         signal_frequency,
         signal_bandwidth,
         threshold,
-        decay_time):
+        decay_time,
+        **extra_args):
 
         gr.sync_block.__init__(self,
-            name="FrequencyDetect",
+            name=self.__class__.__name__,
             in_sig=[(numpy.float32, num_bins)],
             out_sig=[(numpy.float32, 1)])
 
