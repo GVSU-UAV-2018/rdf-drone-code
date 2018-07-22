@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import os
+import sys
 
 if __name__ != '__main__':
     print 'loading '+__name__+' as a module: what do you think you\'re doing?'
@@ -17,16 +18,22 @@ from gnuradio import audio
 import programsetup
 from blocks.wavsource import WavSource
 from blocks.psd import PowerSpectralDensity
-from blocks.signal_detection_method import select_detection_method
+from blocks.signal_detection_method import *
 from blocks.save_to_csv import SaveToCsv
 
 argp = ArgumentParser()
 config_defaults = programsetup.get_file_config()
 programsetup.add_config_section_system(argp, config_defaults['system'])
 programsetup.add_config_section_signal_detection(argp, config_defaults['signal detection'])
-argp.add_argument('INPUT_FOLDER', help='Input folder')
-argp.add_argument('OUTPUT_FILE', help='Output file')
+argp.add_argument('INPUT_FOLDER', nargs='?', help='Input folder')
+argp.add_argument('OUTPUT_FILE', nargs='?',help='Output file')
 config = argp.parse_args();
+
+if config.list_detection_methods:
+    print_detection_methods()
+    sys.exit(0)
+
+print('Configuration:')
 print(config)
 
 directions = sorted(
@@ -66,6 +73,6 @@ for direction in directions:
     main.source.play(str(direction)+'.wav')
     main.sink.set_direction(direction)
     main.psd.set_sample_rate(main.source.sample_rate())
-    main.processing.set_resolution(main.psd.output_sample_rate())
+    main.processing.set_sample_rate(main.psd.output_sample_rate())
     main.start()
     main.wait()
