@@ -96,24 +96,23 @@ class Variance(gr.sync_block):
         self.signal_frequency = signal_frequency
         self.signal_bandwidth = signal_bandwidth
         self.threshold = threshold
+        self.decay_time = decay_time
 
-        decay_n_samples = self._convert_time_to_samples(decay_time)
+
+    def set_sample_rate(self, sample_rate):
+        self.sample_rate = sample_rate
+        bin_width = self.sample_rate
+        center = self.num_bins / 2
+        offset = (self.signal_frequency - self.center_frequency) * 1.0 / bin_width
+        bandwidth = self.signal_bandwidth * 1.0 / bin_width
+        self.signal_min_bin = int(center + floor(offset - bandwidth / 2))
+        self.signal_max_bin = int(center + ceil(offset + bandwidth / 2))
+
+        decay_n_samples = self.decay_time * self.sample_rate
         decay_constant = math.exp(-1.0/decay_n_samples)
         self.expected_variance = MovingAverageEstimator(
             rate=decay_constant, warmup=decay_n_samples)
 
-
-    def set_resolution(self, resolution):
-        self.resolution = resolution
-        center = self.num_bins / 2
-        offset = (self.signal_frequency - self.center_frequency) * 1.0 / resolution
-        bandwidth = self.signal_bandwidth * 1.0 / resolution
-        self.signal_min_bin = int(center + floor(offset - bandwidth / 2))
-        self.signal_max_bin = int(center + ceil(offset + bandwidth / 2))
-
-
-    def _convert_time_to_samples(self, t):
-        return t * self.resolution / (1.0*self.num_bins)
 
 
     def work(self, input_items, output_items):
@@ -128,8 +127,8 @@ class Variance(gr.sync_block):
         signal_estimate = numpy.max(signal_arr)
         signal_variance = numpy.var(signal_arr)
 
-        if (signal_variance > threshold * self.expected_variance.estimate
-            and self.expected_variance.remaining_warmup == 0):
+        if (self.expected_variance.remaining_warmup == 0
+        and signal_variance > self.threshold * self.expected_variance.estimate):
             output_items[0][0] = signal_estimate
         else:
             output_items[0][0] = 0
