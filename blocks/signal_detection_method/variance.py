@@ -13,10 +13,15 @@ from movingaverage import MovingAverageEstimator
 A Gnu Radio block that detects the presence of a specified
 signal frequency given a power spectrum.
 
-This block looks at a narrow range of frequencies,
-and compares the power distribution in this band at the current time to
-a running average. If the power distribution at the current time is
-sufficiently different, we have a signal.
+The detection method used here is similar to that used by the 2015 project group.
+We compare the frequency-domain variance right now to an estimate of what that
+variance would be if we only had noise. If the variance right now reaches a given
+threshold, then we assume we have a real signal and output the peak intensity
+of that signal. Otherwise we output 0.
+
+The one major difference from the 2015 project group's algorithm is that we use
+an exponential moving average for the variance estimate. The 2015 algorithm
+used a simple average, resetting it every few samples.
 
 Configuration:
     * resolution is the FFT resolution, in Hz
@@ -49,35 +54,29 @@ Outputs:
 
 
 
-The detection method used here is similar to that used by the 2015 project group.
-We compare the frequency-domain variance right now to an estimate of what that
-variance would be if we only had noise. If the variance right now reaches a given
-threshold, then we assume we have a real signal and output the peak intensity
-of that signal. Otherwise we output 0.
+Variance of the input signal right now
 
-The one major difference from the 2015 project group's algorithm is that we use
-an exponential moving average for the variance estimate. The 2015 algorithm
-used a simple average, resetting it every few samples.
 
-Input signal right now
         ,            ,            ,
-        |            |            |
-        |            |            |
         |            |            |            . . .
-        |            |            |
-~~~~~~~~'~~~~~~~~~~~~'~~~~~~~~~~~~'~~~~~~~~~~~~
+    ,~,~'`~.~",  ,.~.'~~~.        |   ,~~.
+~^~'    :      ~'         `~~~`~~~'~~'    `~~~~
+        :
+        |
+  signal pulse
+
 
 Delayed moving average
-           ,            ,            ,
-           |\           |\           |\
-           | \          | \          | \
-           |  `.        |  `.        |  `.     . . .
-           |    '~..    |    '~..    |    '~..
-~~~~~~~~~~~'        ````         ````         `
+
+
+           ,.           ,._          ,
+           | `~.._      |  `.        |`~...    . . .
+     ,,~~'''      '''~~~'    '~..    |     `~..
+~`~''                            ````
 """
 
 
-class FrequencyDetectByVariance(gr.sync_block):
+class Variance(gr.sync_block):
     def __init__(self,
         num_bins,
         center_frequency,
@@ -98,7 +97,7 @@ class FrequencyDetectByVariance(gr.sync_block):
         self.threshold = threshold
 
         decay_n_samples = self._convert_time_to_samples(decay_time)
-        decay_constant = exp(-1.0/decay_n_samples)
+        decay_constant = math.exp(-1.0/decay_n_samples)
         self.expected_variance = MovingAverageEstimator(
             rate=decay_constant, warmup=decay_n_samples)
 
