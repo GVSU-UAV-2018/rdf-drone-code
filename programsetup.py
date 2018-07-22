@@ -56,7 +56,7 @@ def add_config_section_recording(parser, recording_config):
         help='Name of file to record to')
 
     parser.add_argument('-O', '--record-in',
-        default=config_sections['recording']['recording folder'],
+        default=recording_config['recording folder'],
         help='Save recordings in the given recording folder')
 
 

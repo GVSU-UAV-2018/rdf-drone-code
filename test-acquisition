@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import os
+import sys
 
 if __name__ != '__main__':
     print 'loading '+__name__+' as a module: what do you think you\'re doing?'
@@ -9,6 +10,7 @@ if __name__ != '__main__':
 import os.path
 from time import sleep
 from fractions import Fraction
+from argparse import ArgumentParser
 
 from gnuradio import gr
 from gnuradio import blocks
@@ -18,12 +20,17 @@ from gnuradio import filter as gr_filter
 import programsetup
 from blocks.wavsource import WavSource
 from blocks.radiosource import RadioSource
-from blocks.top_level_radio_processing import RDFRadioProcessing
-from blocks.top_level_radio_processing import RDFRadioProcessing_output_types
-from blocks.top_level_radio_processing import RDFRadioProcessing_output_slots
 from blocks.save_to_csv import SaveToCsv
 
-config = programsetup.get_radio_cmdline_config()
+argp = ArgumentParser()
+config_defaults = programsetup.get_file_config()
+programsetup.add_config_section_recording(argp, config_defaults['recording'])
+programsetup.add_config_section_acquisition(argp, config_defaults['acquisition'])
+programsetup.add_config_section_system(argp, config_defaults['system'])
+argp.add_argument('SIGNAL_FREQUENCY', type=int, help='Frequency to search for, in Hz')
+config = argp.parse_args()
+
+print('Configuration:')
 print(config)
 
 try:
