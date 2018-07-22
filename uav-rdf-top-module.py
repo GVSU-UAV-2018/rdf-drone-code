@@ -14,6 +14,7 @@ import time
 import sys
 import math
 import numpy
+from argparse import ArgumentParser
 from gnuradio import gr
 from gnuradio import blocks
 
@@ -37,9 +38,14 @@ current_VHF_SNR = 0.0
 snr_wait_time = 5
 
 gr_sigprocessing = None
-os.chdir('/home/pi/rdf-drone-code')
 
-config = programsetup.get_radio_cmdline_config()
+argp = ArgumentParser()
+config_defaults = programsetup.get_file_config()
+programsetup.add_config_section_acquisition(argp, config_defaults['acquisition'])
+programsetup.add_config_section_system(argp, config_defaults['system'])
+programsetup.add_config_section_signal_detection(argp, config_defaults['signal detection'])
+config = argp.parse_args()
+print('Configuration:')
 print(config)
 
 class SigProcessing(gr.top_block):
