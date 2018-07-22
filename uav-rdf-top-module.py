@@ -21,7 +21,8 @@ from pymavlink import mavutil
 
 import programsetup
 from blocks.radiosource import RadioSource
-from blocks.top_level_radio_processing import RDFRadioProcessing
+from blocks.psd import PowerSpectralDensity
+from blocks.signal_detection_method import *
 from blocks.snrextract import SNRExtract
 
 connection_string = "/dev/ttyACM0"
@@ -50,28 +51,24 @@ class SigProcessing(gr.top_block):
             gains=config.gains,
             frequency_offset=config.frequency_offset,
             signal_frequency=(int)(current_VHF_FREQ * 1000000))
-            
-        self.processing = RDFRadioProcessing(
-            num_fft_bins=config.fft_resolution,
+
+        self.psd = PowerSpectralDensity(
+            num_fft_bins=config.fft_resolution)
+
+        self.processing = select_detection_method(config.detection_method)(
+            num_bins=config.fft_resolution,
             center_frequency=(int)(current_VHF_FREQ * 1000000),
             signal_frequency=(int)(current_VHF_FREQ * 1000000),
-            signal_bandwidth=config.signal_bandwidth)
-        
-        self.extract = SNRExtract(sample_snr = 0)
-        
-        sink1 = blocks.null_sink(4)
-        sink2 = blocks.null_sink(4)
-        sink3 = blocks.null_sink(4)
-        sink4 = blocks.null_sink(4)
-        
-        self.connect(self.source, self.processing)
-        self.connect((self.processing, 0), (self.extract, 0))
-        self.connect((self.processing, 1), sink1)
-        self.connect((self.processing, 2), sink2)
-        self.connect((self.processing, 3), sink3)
-        self.connect((self.processing, 4), sink4)
+            signal_bandwidth=config.signal_bandwidth,
+            threshold=config.snr_threshold,
+            decay_time=config.detection_interval)
 
-        self.processing.set_sample_rate(config.sample_rate)
+        self.extract = SNRExtract(sample_snr = 0)
+
+        self.connect(self.source, self.psd, self.processing, self.extract)
+
+        self.psd.set_sample_rate(config.sample_rate)
+        self.processing.set_sample_rate(self.psd.output_sample_rate)
 
 def send_hb_pi():
     alive_file = open('/tmp/gvsu-rdf-alive', 'w+')
@@ -83,12 +80,12 @@ def run_scan():
     global gr_sigprocessing
     global snr_wait_time
     global snr_threshold
-    
+
     scan_completed = False
-    
+
     print "RDF scanning..."
     sys.stdout.flush()
-    
+
     while not scan_completed: #blocking is okay... cancel scan handled by MP
         watchdog.keep_alive(snr_wait_time + 5)
         try:
@@ -98,7 +95,7 @@ def run_scan():
             time.sleep(int(snr_wait_time / 2))
             gr_sigprocessing.stop() #stop gnu radio processing
             gr_sigprocessing.wait() #keep alive
-        
+
             current_VHF_SNR = numpy.max(gr_sigprocessing.extract.snr_samples)
         except:
             print("Error: ", sys.exc_info()[0])
@@ -109,12 +106,12 @@ def run_scan():
         print "RDF scan complete. VHF_SNR: " + str(current_VHF_SNR)
         print "Sending VHF_SNR..."
         sys.stdout.flush()        
-    
+
         mavlink_con.mav.param_set_send(0, 0, "VHF_SNR", current_VHF_SNR, 9)
         print "VHF_SNR sent"
         sys.stdout.flush()
         scan_completed = True
-    
+
 def set_vhf_freq(msg):
     global current_VHF_FREQ
     global gr_sigprocessing
@@ -126,7 +123,7 @@ def set_vhf_freq(msg):
     gr_sigprocessing = SigProcessing()
     print "VHF_FREQ: " + str(current_VHF_FREQ)
     sys.stdout.flush()
-    
+
 def send_hb(msg):
     print "Sending HEARTBEAT..."
     sys.stdout.flush()
@@ -136,7 +133,7 @@ def send_hb(msg):
     sys.stdout.flush()
 
 
-    
+
 
 print "Setting up MavLink com on " + connection_string
 print "Setting Pi System ID: " + str(src_id)
@@ -160,14 +157,14 @@ sys.stdout.flush()
 snr_wait_time = config.time
 gr_sigprocessing = SigProcessing()
 messages = ['COMMAND_LONG', 'HEARTBEAT', 'PARAM_SET']
-    
+
 while True:
     print "Listenting for MavLink message..."
     sys.stdout.flush()
-    
+
     watchdog.keep_alive(5)
     msg = mavlink_con.recv_match(type=messages, blocking=False)
-    
+
     if msg is not None:
         msg_type = msg.get_type()
         print "Received " + str(msg_type) + " message"
