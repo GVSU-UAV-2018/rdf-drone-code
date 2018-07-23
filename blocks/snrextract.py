@@ -19,5 +19,5 @@ class SNRExtract(gr.sync_block):
         self.snr_samples = []
 
     def work(self, input_items, output_items):
-        self.snr_samples.append(input_items[0])
+        self.snr_samples.append(input_items[0][0])
         return 1
