@@ -120,10 +120,8 @@ def set_vhf_freq(msg):
     print "VHF_FREQ: " + str(current_VHF_FREQ)
 
 def send_hb(msg):
-    print "Sending HEARTBEAT..."
     mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER, 
         mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
-    print "HEARTBEAT sent"
 
 print "Setting up MavLink com on " + connection_string
 print "Setting Pi System ID: " + str(src_id)
@@ -151,7 +149,8 @@ while True:
 
     if msg is not None:
         msg_type = msg.get_type()
-        print "Received " + str(msg_type) + " message"
+        if msg_type != 'HEARTBEAT':
+            print "Received " + str(msg_type) + " message"
 
         if msg_type == 'COMMAND_LONG':
             if msg.command == mavutil.mavlink.MAV_CMD_USER_1:
