@@ -26,7 +26,9 @@ from blocks.psd import PowerSpectralDensity
 from blocks.signal_detection_method import *
 from blocks.snrextract import SNRExtract
 
-connection_string = "/dev/ttyACM0"
+#TODO: use configuration file for all of these parameters
+
+connection_string = "/dev/serial0"
 baud_rate = 57600
 src_id = 1
 comp_id = 177
@@ -74,7 +76,7 @@ class SigProcessing(gr.top_block):
         self.connect(self.source, self.psd, self.processing, self.extract)
 
         self.psd.set_sample_rate(config.sample_rate)
-        self.processing.set_sample_rate(self.psd.output_sample_rate)
+        self.processing.set_sample_rate(self.psd.output_sample_rate())
 
 def send_hb_pi():
     alive_file = open('/tmp/gvsu-rdf-alive', 'w+')
