@@ -5,16 +5,11 @@
 '
 ' GVSU UAV Team 2018
 '''
-
-import watchdog
-watchdog.keep_alive(5)
-
 import os
 import time
 import sys
 import math
 import numpy
-from argparse import ArgumentParser
 from gnuradio import gr
 from gnuradio import blocks
 
@@ -22,36 +17,27 @@ from pymavlink import mavutil
 
 import programsetup
 from blocks.radiosource import RadioSource
-from blocks.psd import PowerSpectralDensity
-from blocks.signal_detection_method import *
+from blocks.top_level_radio_processing import RDFRadioProcessing
 from blocks.snrextract import SNRExtract
 
-#TODO: use configuration file for all of these parameters
-
-connection_string = "/dev/serial0"
+connection_string = "/dev/ttyACM0"
 baud_rate = 57600
 src_id = 1
 comp_id = 177
 
-current_VHF_FREQ = 151.823
+current_VHF_FREQ = 150.000
 current_VHF_SNR = 0.0
 
+#These need to be configurable
 snr_wait_time = 5
+snr_threshold = 10
 
 gr_sigprocessing = None
 
-argp = ArgumentParser()
-config_defaults = programsetup.get_file_config()
-programsetup.add_config_section_acquisition(argp, config_defaults['acquisition'])
-programsetup.add_config_section_system(argp, config_defaults['system'])
-programsetup.add_config_section_signal_detection(argp, config_defaults['signal detection'])
-config = argp.parse_args()
-print('Configuration:')
+os.chdir('/home/pi/rdf-drone-code')
+
+config = programsetup.get_radio_cmdline_config()
 print(config)
-
-snr_wait_time = config.time
-messages = ['COMMAND_LONG', 'HEARTBEAT', 'PARAM_SET']
-
 
 class SigProcessing(gr.top_block):
     def __init__(self):
@@ -62,103 +48,124 @@ class SigProcessing(gr.top_block):
             gains=config.gains,
             frequency_offset=config.frequency_offset,
             signal_frequency=(int)(current_VHF_FREQ * 1000000))
-
-        self.psd = PowerSpectralDensity(
-            num_fft_bins=config.fft_resolution)
-
-        self.processing = select_detection_method(config.detection_method)(
-            num_bins=config.fft_resolution,
+            
+        self.processing = RDFRadioProcessing(
+            num_fft_bins=config.fft_resolution,
             center_frequency=(int)(current_VHF_FREQ * 1000000),
             signal_frequency=(int)(current_VHF_FREQ * 1000000),
-            signal_bandwidth=config.signal_bandwidth,
-            threshold=config.snr_threshold,
-            decay_time=config.detection_interval)
-
+            signal_bandwidth=config.signal_bandwidth)
+        
         self.extract = SNRExtract(sample_snr = 0)
+        
+        sink1 = blocks.null_sink(4)
+        sink2 = blocks.null_sink(4)
+        sink3 = blocks.null_sink(4)
+        sink4 = blocks.null_sink(4)
+        
+        self.connect(self.source, self.processing)
+        self.connect((self.processing, 0), (self.extract, 0))
+        self.connect((self.processing, 1), sink1)
+        self.connect((self.processing, 2), sink2)
+        self.connect((self.processing, 3), sink3)
+        self.connect((self.processing, 4), sink4)
 
-        self.connect(self.source, self.psd, self.processing, self.extract)
-
-        self.psd.set_sample_rate(config.sample_rate)
-        self.processing.set_sample_rate(self.psd.output_sample_rate())
+        self.processing.set_sample_rate(config.sample_rate)
 
 def run_scan(msg):
     global current_VHF_SNR
     global gr_sigprocessing
     global snr_wait_time
     global snr_threshold
-
+    
     scan_completed = False
-
+    
     print "RDF scanning..."
-
+    sys.stdout.flush()
+    
     while not scan_completed: #blocking is okay... cancel scan handled by MP
-        watchdog.keep_alive(snr_wait_time + 5)
         try:
+            snr_good = 0.0
+            snr_good_count = 0
             gr_sigprocessing.start() #start gnu radio processing
-            time.sleep(int(snr_wait_time / 2))
-            send_hb_pi()
-            time.sleep(int(snr_wait_time / 2))
+            time.sleep(snr_wait_time)
             gr_sigprocessing.stop() #stop gnu radio processing
             gr_sigprocessing.wait() #keep alive
-
-            current_VHF_SNR = numpy.max(gr_sigprocessing.extract.snr_samples)
+        
+        
+            current_VHF_SNR = numpy.max(SNRExtract.snr_samples)
         except:
-            print("Error: ", sys.exc_info()[0])
             scan_completed = False
             continue
 
-        gr_sigprocessing.extract.snr_samples = []
+        SNRExtract.snr_samples = []
         print "RDF scan complete. VHF_SNR: " + str(current_VHF_SNR)
         print "Sending VHF_SNR..."
-
+        sys.stdout.flush()        
+    
         mavlink_con.mav.param_set_send(0, 0, "VHF_SNR", current_VHF_SNR, 9)
         print "VHF_SNR sent"
+        sys.stdout.flush()
         scan_completed = True
-
+    
 def set_vhf_freq(msg):
     global current_VHF_FREQ
     global gr_sigprocessing
 
     print "Setting VHF_FREQ..."
+    sys.stdout.flush()
     current_VHF_FREQ = msg.param_value
     gr_sigprocessing = None
     gr_sigprocessing = SigProcessing()
     print "VHF_FREQ: " + str(current_VHF_FREQ)
-
+    sys.stdout.flush()
+    
 def send_hb(msg):
     print "Sending HEARTBEAT..."
+    sys.stdout.flush()
     mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER, 
         mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
     print "HEARTBEAT sent"
+    sys.stdout.flush()
+
+def send_pi_hb():
+    #/temp/gvsu-rdf-alive
+
+    
 
 print "Setting up MavLink com on " + connection_string
 print "Setting Pi System ID: " + str(src_id)
 print "Setting Pi Comp ID: " + str(comp_id)
+sys.stdout.flush()
 mavlink_con = mavutil.mavlink_connection(connection_string, 
     baud=baud_rate, source_system=src_id, source_component=comp_id)
 print "Connection ok"
-
 print "Waiting for drone HEARTBEAT..."
-watchdog.keep_alive(5)
+sys.stdout.flush()
 mavlink_con.wait_heartbeat()
 print "Received drone HEARTBEAT"
-
-print "Sending initial HEARTBEAT..."
-mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER,
+print "Sending initial HEARTBEAT..." 
+sys.stdout.flush()
+mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER, 
     mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, mavutil.mavlink.MAV_STATE_BOOT)
-print "HEARTBEAT sent"
+print "HEARTBEAT sent" 
+sys.stdout.flush()
 
 gr_sigprocessing = SigProcessing()
 
+messages = ['COMMAND_LONG', 'HEARTBEAT', 'PARAM_SET']
+snr_wait_time = config.time
+    
 while True:
-
-    watchdog.keep_alive(5)
+    print "Listenting for MavLink message..."
+    sys.stdout.flush()
+    
+    #block while waiting for message to be sent. Blocking ok in this context
     msg = mavlink_con.recv_match(type=messages, blocking=False)
-
-    if msg is not None:
+    if not msg == None:
         msg_type = msg.get_type()
         print "Received " + str(msg_type) + " message"
-
+        sys.stdout.flush()
+        
         if msg_type == 'COMMAND_LONG':
             if msg.command == mavutil.mavlink.MAV_CMD_USER_1:
                 run_scan(msg)

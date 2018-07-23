@@ -1,0 +1,78 @@
+#!/usr/bin/env python2
+
+import os
+
+if __name__ != '__main__':
+    print 'loading '+__name__+' as a module: what do you think you\'re doing?'
+    os.exit(-1)
+
+import os.path
+from time import sleep
+from fractions import Fraction
+
+from gnuradio import gr
+from gnuradio import blocks
+from gnuradio import audio
+from gnuradio import filter as gr_filter
+
+import programsetup
+import fcdproplus
+from blocks.wavsource import WavSource
+from blocks.radiosource import RadioSource
+from blocks.top_level_radio_processing import RDFRadioProcessing
+from blocks.top_level_radio_processing import RDFRadioProcessing_output_types
+from blocks.top_level_radio_processing import RDFRadioProcessing_output_slots
+from blocks.save_to_csv import SaveToCsv
+
+config = programsetup.get_radio_cmdline_config()
+print(config)
+
+try:
+    os.makedirs(config.record_in)
+except Exception as e:
+    print e
+
+class Main(gr.top_block):
+    def __init__(self):
+        gr.top_block.__init__(self)
+        
+        self.sample_rate = 192000
+        #self.source = RadioSource(
+            #preferred_sample_rate=config.sample_rate,
+            #gains=config.gains,
+            #frequency_offset=config.frequency_offset,
+            #signal_frequency=config.SIGNAL_FREQUENCY)
+
+        self.fcdproplus_fcdproplus_0 = fcdproplus.fcdproplus("",1)
+        self.fcdproplus_fcdproplus_0.set_lna(1)
+        self.fcdproplus_fcdproplus_0.set_mixer_gain(1)
+        self.fcdproplus_fcdproplus_0.set_if_gain(1) #20
+        self.fcdproplus_fcdproplus_0.set_freq_corr(0)
+        self.fcdproplus_fcdproplus_0.set_freq(config.SIGNAL_FREQUENCY - config.frequency_offset)
+
+        self.split_into_channels = blocks.complex_to_float()
+        self.record = blocks.wavfile_sink(
+            filename=config.record_in+'/'+config.recording_filename,
+            n_channels=2,
+            sample_rate=self.sample_rate,
+            bits_per_sample=16)
+
+        self.connect(self.fcdproplus_fcdproplus_0, self.split_into_channels)
+        self.connect((self.split_into_channels, 0), (self.record, 0))
+        self.connect((self.split_into_channels, 1), (self.record, 1))
+
+        audio_resample_rate = Fraction(48000, self.sample_rate)
+        self.connect(
+            (self.split_into_channels, 0),
+            blocks.multiply_const_ff(100),
+            gr_filter.rational_resampler_fff(
+                interpolation=int(audio_resample_rate.numerator),
+                decimation=audio_resample_rate.denominator),
+            audio.sink(48000, 'hw:0,1'))
+
+main = Main()
+
+main.start()
+sleep(config.time)
+main.stop()
+main.wait()
