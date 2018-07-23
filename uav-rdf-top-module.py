@@ -69,7 +69,7 @@ class SigProcessing(gr.top_block):
         self.processing = select_detection_method(config.detection_method)(
             num_bins=config.fft_resolution,
             center_frequency=(int)(current_VHF_FREQ * 1000000),
-            signal_frequency=(int)(current_VHF_FREQ * 1000000),
+            signal_frequency=(int)(current_VHF_FREQ * 1000000)+config.frequency_offset,
             signal_bandwidth=config.signal_bandwidth,
             threshold=config.snr_threshold,
             decay_time=config.detection_interval)
@@ -91,21 +91,15 @@ def run_scan(msg):
 
     print "RDF scanning..."
 
+    # TODO: This loop blocks and runs once. Make it cancelable/non-blocking and an actual loop
     while not scan_completed: #blocking is okay... cancel scan handled by MP
         watchdog.keep_alive(snr_wait_time + 5)
-        try:
-            gr_sigprocessing.start() #start gnu radio processing
-            time.sleep(int(snr_wait_time / 2))
-            send_hb_pi()
-            time.sleep(int(snr_wait_time / 2))
-            gr_sigprocessing.stop() #stop gnu radio processing
-            gr_sigprocessing.wait() #keep alive
+        gr_sigprocessing.start() #start gnu radio processing
+        time.sleep(snr_wait_time)
+        gr_sigprocessing.stop() #stop gnu radio processing
+        gr_sigprocessing.wait() #keep alive
 
-            current_VHF_SNR = numpy.max(gr_sigprocessing.extract.snr_samples)
-        except:
-            print("Error: ", sys.exc_info()[0])
-            scan_completed = False
-            continue
+        current_VHF_SNR = max(gr_sigprocessing.extract.snr_samples)
 
         gr_sigprocessing.extract.snr_samples = []
         print "RDF scan complete. VHF_SNR: " + str(current_VHF_SNR)
