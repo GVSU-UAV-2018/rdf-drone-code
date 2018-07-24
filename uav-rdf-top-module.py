@@ -14,6 +14,8 @@ import time
 import sys
 import math
 import numpy
+import struct
+
 from argparse import ArgumentParser
 from gnuradio import gr
 from gnuradio import blocks
@@ -50,7 +52,7 @@ print('Configuration:')
 print(config)
 
 snr_wait_time = config.time
-messages = ['COMMAND_LONG', 'HEARTBEAT', 'PARAM_SET']
+messages = ['COMMAND_LONG', 'HEARTBEAT', 'PARAM_SET', 'PARAM_VALUE']
 
 
 class SigProcessing(gr.top_block):
@@ -81,14 +83,25 @@ class SigProcessing(gr.top_block):
         self.psd.set_sample_rate(config.sample_rate)
         self.processing.set_sample_rate(self.psd.output_sample_rate())
 
+#TODO: this abuses memory_vect_send. Fix it!
+def send_result(seq_num, result):
+    payload = struct.unpack('!32b', struct.pack('!f', result).ljust(32, '\0'))
+    mavlink_con.mav.memory_vect_send(seq_num, 1, 1, payload)
+
+seq_num = 0
 def run_scan(msg):
     global current_VHF_SNR
     global gr_sigprocessing
     global snr_wait_time
     global snr_threshold
+    global seq_num
+
+    reply_to_system = msg.get_srcSystem()
+    reply_to_component = msg.get_srcComponent()
 
     scan_completed = False
 
+    print("Received message from ({0},{1})".format(reply_to_system, reply_to_component))
     print "RDF scanning..."
 
     # TODO: This loop blocks and runs once. Make it cancelable/non-blocking and an actual loop
@@ -105,9 +118,31 @@ def run_scan(msg):
         print "RDF scan complete. VHF_SNR: " + str(current_VHF_SNR)
         print "Sending VHF_SNR..."
 
-        mavlink_con.mav.param_set_send(0, 0, "VHF_SNR", current_VHF_SNR, 9)
-        print "VHF_SNR sent"
+        send_result(seq_num % 65536, current_VHF_SNR)
+#        mavlink_con.mav.param_set_send(reply_to_system, reply_to_component, "VHF_SNR", current_VHF_SNR, 9)
+
+        # TODO: rewrite this bit
+        retries = 0
+        succeeded = False
+        for i in range(4):
+            retries = i
+            watchdog.keep_alive(2)
+            ack = mavlink_con.recv_match(type=['PARAM_VALUE'], blocking=False)
+            if ack is not None:
+                print('ACK: {0}'.format(ack.param_value))
+                succeeded = True
+                break
+            else:
+                send_result(seq_num % 65536, current_VHF_SNR)
+#                mavlink_con.mav.param_set_send(reply_to_system, reply_to_component, 'VHF_SNR', current_VHF_SNR, 9)
+            time.sleep(1)
+
+        if succeeded:
+            print("VHF_SNR sent ({0} retries)".format(retries))
+        else:
+            print("!!!VHF_SNR was not sent!!!")
         scan_completed = True
+        seq_num += 1
 
 def set_vhf_freq(msg):
     global current_VHF_FREQ
@@ -118,6 +153,8 @@ def set_vhf_freq(msg):
     gr_sigprocessing = None
     gr_sigprocessing = SigProcessing()
     print "VHF_FREQ: " + str(current_VHF_FREQ)
+    mavlink_con.mav.param_value_send(msg.param_id,msg.param_value,msg.param_type,0,0)
+    print "VHF_FREQ ack"
 
 def send_hb(msg):
     mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER, 
@@ -145,7 +182,7 @@ gr_sigprocessing = SigProcessing()
 while True:
 
     watchdog.keep_alive(5)
-    msg = mavlink_con.recv_match(type=messages, blocking=False)
+    msg = mavlink_con.recv_msg()
 
     if msg is not None:
         msg_type = msg.get_type()
