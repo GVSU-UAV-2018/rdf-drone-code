@@ -120,7 +120,7 @@ def set_vhf_freq(msg):
     gr_sigprocessing = SigProcessing()
     print "VHF_FREQ: " + str(current_VHF_FREQ)
 	mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
-	    msg.param_type, msg.param_count, msg.param_index)
+	    msg.param_type, 0, 0)
     print "Sending VHF_FREQ ack"
 
 def send_hb(msg):
@@ -134,7 +134,7 @@ def set_if_gain(msg):
     print "IF_GAIN: " + str(current_VHF_GAINS[0])
 	#(self, param_id, param_value, param_type, param_count, param_index)
     mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
-	    msg.param_type, msg.param_count, msg.param_index)
+	    msg.param_type, 0, 0)
     print "Sending IF_GAIN ack"
     
 def set_mix_gain(msg):
@@ -143,7 +143,7 @@ def set_mix_gain(msg):
     gr_sigprocessing = SigProcessing()
     print "MIX_GAIN: " + str(current_VHF_GAINS[1])
     mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
-	    msg.param_type, msg.param_count, msg.param_index)
+	    msg.param_type, 0, 0)
     print "Sending MIX_GAIN ack"
     
 def set_lna_gain(msg):
@@ -152,7 +152,7 @@ def set_lna_gain(msg):
     gr_sigprocessing = SigProcessing()
     print "LNA_GAIN: " + str(current_VHF_GAINS[2])
     mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
-	    msg.param_type, msg.param_count, msg.param_index)
+	    msg.param_type, 0, 0)
     print "Sending LNA_GAIN_GAIN ack"
     
 print "Setting up MavLink com on " + connection_string
