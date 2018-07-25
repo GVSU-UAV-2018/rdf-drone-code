@@ -153,7 +153,7 @@ def set_lna_gain(msg):
     print "LNA_GAIN: " + str(current_VHF_GAINS[2])
     mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
 	    msg.param_type, msg.param_count, msg.param_index)
-    print "Sending MIX_GAIN ack"
+    print "Sending LNA_GAIN_GAIN ack"
     
 print "Setting up MavLink com on " + connection_string
 print "Setting Pi System ID: " + str(src_id)
