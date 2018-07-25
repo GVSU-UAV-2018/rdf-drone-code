@@ -119,6 +119,9 @@ def set_vhf_freq(msg):
     gr_sigprocessing = None
     gr_sigprocessing = SigProcessing()
     print "VHF_FREQ: " + str(current_VHF_FREQ)
+	mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
+	    msg.param_type, msg.param_count, msg.param_index)
+    print "Sending VHF_FREQ ack"
 
 def send_hb(msg):
     mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER, 
@@ -126,22 +129,32 @@ def send_hb(msg):
 
 def set_if_gain(msg):
     current_VHF_GAINS[0] = msg.param_value
-	gr_sigprocessing = None
+    gr_sigprocessing = None
     gr_sigprocessing = SigProcessing()
     print "IF_GAIN: " + str(current_VHF_GAINS[0])
-	
+	#(self, param_id, param_value, param_type, param_count, param_index)
+    mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
+	    msg.param_type, msg.param_count, msg.param_index)
+    print "Sending IF_GAIN ack"
+    
 def set_mix_gain(msg):
     current_VHF_GAINS[1] = msg.param_value
-	gr_sigprocessing = None
+    gr_sigprocessing = None
     gr_sigprocessing = SigProcessing()
     print "MIX_GAIN: " + str(current_VHF_GAINS[1])
-	
+    mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
+	    msg.param_type, msg.param_count, msg.param_index)
+    print "Sending MIX_GAIN ack"
+    
 def set_lna_gain(msg):
     current_VHF_GAINS[2] = msg.param_value
-	gr_sigprocessing = None
+    gr_sigprocessing = None
     gr_sigprocessing = SigProcessing()
     print "LNA_GAIN: " + str(current_VHF_GAINS[2])
-	
+    mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
+	    msg.param_type, msg.param_count, msg.param_index)
+    print "Sending MIX_GAIN ack"
+    
 print "Setting up MavLink com on " + connection_string
 print "Setting Pi System ID: " + str(src_id)
 print "Setting Pi Comp ID: " + str(comp_id)
@@ -177,11 +190,11 @@ while True:
         elif msg_type == 'PARAM_SET':
             if msg.param_id == 'VHF_FREQ':
                 set_vhf_freq(msg)
-			elif msg.param_id == 'IF_GAIN':
-			    set_if_gain(msg)
-			elif msg.param_id == 'MIX_GAIN':
-			    set_mix_gain(msg)
-			elif msg.param_id == 'LNA_GAIN':
-                set_lna_gain(msg)			
+            elif msg.param_id == 'IF_GAIN':
+                set_if_gain(msg)
+            elif msg.param_id == 'MIX_GAIN':
+                set_mix_gain(msg)
+            elif msg.param_id == 'LNA_GAIN':
+                set_lna_gain(msg)            
         elif msg_type == 'HEARTBEAT':
             send_hb(msg)
