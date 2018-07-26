@@ -37,6 +37,7 @@ comp_id = 177
 
 current_VHF_FREQ = 151.823
 current_VHF_SNR = 0.0
+current_VHF_GAINS = [0, 0, 0]
 
 snr_wait_time = 5
 
@@ -52,8 +53,8 @@ print('Configuration:')
 print(config)
 
 snr_wait_time = config.time
-messages = ['COMMAND_LONG', 'HEARTBEAT', 'PARAM_SET', 'PARAM_VALUE']
-
+messages = ['COMMAND_LONG', 'HEARTBEAT', 'PARAM_SET']
+current_VHF_GAINS = config.gains
 
 class SigProcessing(gr.top_block):
     def __init__(self):
@@ -61,7 +62,7 @@ class SigProcessing(gr.top_block):
 
         self.source = RadioSource(
             preferred_sample_rate=config.sample_rate,
-            gains=config.gains,
+            gains=current_VHF_GAINS,
             frequency_offset=config.frequency_offset,
             signal_frequency=(int)(current_VHF_FREQ * 1000000))
 
@@ -153,13 +154,42 @@ def set_vhf_freq(msg):
     gr_sigprocessing = None
     gr_sigprocessing = SigProcessing()
     print "VHF_FREQ: " + str(current_VHF_FREQ)
-    mavlink_con.mav.param_value_send(msg.param_id,msg.param_value,msg.param_type,0,0)
-    print "VHF_FREQ ack"
+    mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
+        msg.param_type, 0, 0)
+    print "Sending VHF_FREQ ack"
 
 def send_hb(msg):
     mavlink_con.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_ONBOARD_CONTROLLER, 
         mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
 
+def set_if_gain(msg):
+    current_VHF_GAINS[0] = msg.param_value
+    gr_sigprocessing = None
+    gr_sigprocessing = SigProcessing()
+    print "IF_GAIN: " + str(current_VHF_GAINS[0])
+	#(self, param_id, param_value, param_type, param_count, param_index)
+    mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
+	    msg.param_type, 0, 0)
+    print "Sending IF_GAIN ack"
+    
+def set_mix_gain(msg):
+    current_VHF_GAINS[1] = msg.param_value
+    gr_sigprocessing = None
+    gr_sigprocessing = SigProcessing()
+    print "MIX_GAIN: " + str(current_VHF_GAINS[1])
+    mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
+	    msg.param_type, 0, 0)
+    print "Sending MIX_GAIN ack"
+    
+def set_lna_gain(msg):
+    current_VHF_GAINS[2] = msg.param_value
+    gr_sigprocessing = None
+    gr_sigprocessing = SigProcessing()
+    print "LNA_GAIN: " + str(current_VHF_GAINS[2])
+    mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
+	    msg.param_type, 0, 0)
+    print "Sending LNA_GAIN_GAIN ack"
+    
 print "Setting up MavLink com on " + connection_string
 print "Setting Pi System ID: " + str(src_id)
 print "Setting Pi Comp ID: " + str(comp_id)
@@ -195,5 +225,11 @@ while True:
         elif msg_type == 'PARAM_SET':
             if msg.param_id == 'VHF_FREQ':
                 set_vhf_freq(msg)
+            elif msg.param_id == 'IF_GAIN':
+                set_if_gain(msg)
+            elif msg.param_id == 'MIX_GAIN':
+                set_mix_gain(msg)
+            elif msg.param_id == 'LNA_GAIN':
+                set_lna_gain(msg)            
         elif msg_type == 'HEARTBEAT':
             send_hb(msg)
