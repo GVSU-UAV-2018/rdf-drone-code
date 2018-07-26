@@ -163,9 +163,9 @@ def send_hb(msg):
         mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, mavutil.mavlink.MAV_STATE_ACTIVE)
 
 def set_if_gain(msg):
-    current_VHF_GAINS[0] = msg.param_value
-    gr_sigprocessing = None
-    gr_sigprocessing = SigProcessing()
+    print "Received IF Gain msg"
+    current_VHF_GAINS[0] = int(msg.param_value)
+    gr_sigprocessing.source.gains = current_VHF_GAINS
     print "IF_GAIN: " + str(current_VHF_GAINS[0])
 	#(self, param_id, param_value, param_type, param_count, param_index)
     mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
@@ -173,18 +173,18 @@ def set_if_gain(msg):
     print "Sending IF_GAIN ack"
     
 def set_mix_gain(msg):
-    current_VHF_GAINS[1] = msg.param_value
-    gr_sigprocessing = None
-    gr_sigprocessing = SigProcessing()
+    print "Received Mixer Gain msg"
+    current_VHF_GAINS[1] = int(msg.param_value)
+    gr_sigprocessing.source.gains = current_VHF_GAINS
     print "MIX_GAIN: " + str(current_VHF_GAINS[1])
     mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
 	    msg.param_type, 0, 0)
     print "Sending MIX_GAIN ack"
     
 def set_lna_gain(msg):
-    current_VHF_GAINS[2] = msg.param_value
-    gr_sigprocessing = None
-    gr_sigprocessing = SigProcessing()
+    print "Received LNA Gain msg"
+    current_VHF_GAINS[2] = int(msg.param_value)
+    gr_sigprocessing.source.gains = current_VHF_GAINS
     print "LNA_GAIN: " + str(current_VHF_GAINS[2])
     mavlink_con.mav.param_value_send(msg.param_id, msg.param_value, 
 	    msg.param_type, 0, 0)
