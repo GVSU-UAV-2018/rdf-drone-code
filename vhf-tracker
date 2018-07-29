@@ -86,14 +86,16 @@ def summarize_scan_result(samples):
 detector = SignalDetector(config)
 
 mav_params = MavParamTable(
-    MavParam('gain0', config.gains[0], lambda p: detector.set_gain(0, p.value)),
-    MavParam('gain1', config.gains[1], lambda p: detector.set_gain(1, p.value)),
-    MavParam('gain2', config.gains[2], lambda p: detector.set_gain(2, p.value)),
+    MavParam('LNA_GAIN', config.gains[0], lambda p: detector.set_gain(0, p.value)),
+    MavParam('MIX_GAIN', config.gains[1], lambda p: detector.set_gain(1, p.value)),
+    MavParam('IF_GAIN', config.gains[2], lambda p: detector.set_gain(2, p.value)),
 
-    MavParam('frequency', config.frequency,
+    MavParam('VHF_FREQ', config.frequency,
         lambda p: detector.set_signal_frequency(p.value)),
 
-    MavParam('signal_strength', 0, set_param=None)
+    # not actually SNR, but this is the name expected on the other side of
+    # the MAVLink connection
+    MavParam('VHF_SNR', 0, set_param=None)
 )
 
 mavlink_con = mavutil.mavlink_connection(
@@ -123,7 +125,7 @@ while True:
     if detector.running():
         detector.stop_if_finished()
         if not detector.running():
-            mav_params.signal_strength = summarize_scan_result(detector.pop_samples())
+            mav_params.VHF_SNR = summarize_scan_result(detector.pop_samples())
             last_completed_scan = scan_in_progress
             scan_in_progress = -1
 
