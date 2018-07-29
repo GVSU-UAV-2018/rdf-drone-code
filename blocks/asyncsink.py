@@ -6,18 +6,23 @@ from math import ceil, floor
 
 from gnuradio import gr
 
-class SNRExtract(gr.sync_block):
-    def __init__(self,
-        sample_snr):
+class AsyncSink(gr.sync_block):
+    def __init__(self):
 
         gr.sync_block.__init__(self,
             name="SNRExtract",
             in_sig=[(numpy.float32)],
             out_sig=None)
 
-        self.sample_snr = sample_snr
-        self.snr_samples = []
+        self._queue = []
 
     def work(self, input_items, output_items):
-        self.snr_samples.append(input_items[0][0])
+        self._queue.append(input_items[0][0])
         return 1
+
+    def pop_all():
+        self.lock()
+        result = self._queue
+        self._queue = []
+        self.unlock()
+        return result
