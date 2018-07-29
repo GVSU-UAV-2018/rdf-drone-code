@@ -1,0 +1,130 @@
+#! /usr/bin/env python2
+
+
+import watchdog
+watchdog.patience = 5
+watchdog.keep_alive()
+
+import time
+
+# Pymavlink is... mostly not documented, so most of our knowledge of it comes
+# from reading the (mostly auto-generated) code.
+#
+# We are using pymavlink.mavutil because it's convenient.
+# However, it is _not_ the proper abstraction.
+# mavutil assumes that it's on the end of the connection which sends commands
+# and receives telemetry, but we're on the end which receives commands and
+# sends telemetry, which is exactly the opposite.
+#
+# We are _not_ using pymavlink.mavparm because, again, it assumes we are on
+# the commanding end of the connection, which we aren't.
+#
+# If we had more time, we might either modify mavutil so that it can work on
+# the 'vehicle' end of a connection without surprises, or add a separate module
+# to do so.
+
+from pymavlink import mavutil
+from pymavlink.mavutil import mavlink
+from mavwrapper import send_heartbeat, MavParam, MavParamTable
+
+
+from argparse import ArgumentParser
+import programsetup
+argp = ArgumentParser()
+config_defaults = programsetup.get_file_config()
+programsetup.add_config_section_acquisition(argp, config_defaults['acquisition'])
+programsetup.add_config_section_system(argp, config_defaults['system'])
+programsetup.add_config_section_signal_detection(argp, config_defaults['signal detection'])
+programsetup.add_config_section_mavlink(argp, config_defaults['mavlink'])
+config = argp.parse_args()
+print('Configuration:')
+print(config)
+
+
+CMD_RUN_SCAN = mavlink.MAV_CMD_USER_1
+
+last_completed_scan = -1
+scan_in_progress = -1
+
+def handle_COMMAND_LONG_CMD_RUN_SCAN(connection, msg):
+    global detector
+    global last_completed_scan
+    global scan_in_progress
+
+    requested_scan = msg.param1
+
+    if requested_scan == last_completed_scan:
+        connection.command_ack_send(
+            msg.command,
+            requested_scan, # result field used to indicate which scan we're responding for
+            100,            # progress field, used for percent-done estimate
+            0,              # result field, not used
+            msg.get_srcSystem(),
+            msg.get_srcComponent())
+
+    else:
+        if not detector.running() or requested_scan != scan_in_progress:
+            detector.start_scan(config.time)
+            scan_in_progress = requested_scan
+
+        connection.command_ack_send(
+            msg.command,
+            requested_scan,
+            detector.percent_finished(),
+            0,
+            msg.get_srcSystem(),
+            msg.get_srcComponent())
+
+
+def summarize_scan_result(samples):
+    if len(samples) > 0:
+        return max(samples)
+    else:
+        return 0
+
+
+detector = SignalDetector(config)
+
+mav_params = MavParamTable(
+    MavParam('gain0', config.gains[0], lambda p: detector.set_gain(0, p.value)),
+    MavParam('gain1', config.gains[1], lambda p: detector.set_gain(1, p.value)),
+    MavParam('gain2', config.gains[2], lambda p: detector.set_gain(2, p.value)),
+
+    MavParam('frequency', config.frequency,
+        lambda p: detector.set_signal_frequency(p.value)),
+
+    MavParam('signal_strength', 0, set_param=None)
+)
+
+mavlink_con = mavutil.mavlink_connection(
+    config.mavlink_device,
+    config.mavlink_data_rate,
+    config.mavlink_system_id,
+    config.mavlink_component_id)
+
+
+while True:
+    watchdog.keep_alive()
+    send_heartbeat(mavlink_con.mav)
+
+    msg = mavlink_con.recv_msg()
+
+    if msg is not None:
+        msg_type = msg.get_type()
+
+        if msg_type != 'HEARTBEAT':
+            print 'Received {0}'.format(msg_type)
+
+        if msg_type == 'COMMAND_LONG' and msg.command == CMD_RUN_SCAN:
+            handle_COMMAND_LONG_CMD_RUN_SCAN(mavlink_con.mav, msg)
+        elif msg_type in {'PARAM_REQUEST_READ', 'PARAM_REQUEST_LIST', 'PARAM_SET'}:
+            mav_params.handle(mavlink_con.mav, msg)
+
+    if detector.running():
+        detector.stop_if_finished()
+        if not detector.running():
+            mav_params.signal_strength = summarize_scan_result(detector.pop_samples())
+            last_completed_scan = scan_in_progress
+            scan_in_progress = -1
+
+    sleep(0.01)
