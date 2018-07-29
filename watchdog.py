@@ -11,6 +11,7 @@ import signal
 import time
 import sys
 
+patience = 0
 last_keep_alive = None
 
 def on_SIGALRM(_, __):
@@ -19,7 +20,7 @@ def on_SIGALRM(_, __):
 
 signal.signal(signal.SIGALRM, on_SIGALRM)
 
-def keep_alive(seconds):
+def keep_alive(seconds = 0):
     """
     Once keep_alive has been called, it must be called repeatedly to avoid
     killing the program. Calling keep_alive(t) keeps the program alive for at
@@ -29,8 +30,8 @@ def keep_alive(seconds):
     performance into an exit condition.
     """
     global last_keep_alive
-    old_alarm_seconds = signal.alarm(seconds)
-    if old_alarm_seconds > seconds:
+    old_alarm_seconds = signal.alarm(seconds + patience)
+    if old_alarm_seconds > seconds + patience:
         signal.alarm(old_alarm_seconds)
 
     last_keep_alive = (
