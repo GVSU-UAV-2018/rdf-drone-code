@@ -111,3 +111,22 @@ def add_config_section_signal_detection(parser, detection_config):
     parser.add_argument('--list-detection-methods',
         action='store_true',
         help='List the available signal detection methods.')
+
+
+def add_config_section_mavlink(parser, mavlink_config):
+
+    parser.add_argument('--mavlink-device',
+        default=mavlink_config['device'],
+        help='Serial device for MAVLink communication')
+
+    parser.add_argument('--mavlink-data-rate',
+        default=mavlink_config['data rate'],
+        help='Serial data rate for MAVLink communication')
+
+    parser.add_argument('--mavlink-system-id',
+        default=mavlink_config['system id'],
+        help='MAVLink system ID of the vehicle or station this computer is part of')
+
+    parser.add_argument('--mavlink-component-id',
+        default=mavlink_config['component id'],
+        help='MAVLink component ID of this computer')
