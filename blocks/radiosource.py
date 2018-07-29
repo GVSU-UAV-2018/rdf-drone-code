@@ -7,42 +7,43 @@ import osmosdr
 
 """
 Wrapper for osmosdr block.
-Sets all parameters when creating the block, rather than providing separate
-functions to set them.
-Automatically performs filtering and resampling to provide a sample rate independent of the sample rates supported by the receiver.
+Performs resampling (with anti-image/antialias filtering) to provide a sample rate
+independent of the sample rates supported by the receiver.
 """
 
 class RadioSource(gr.hier_block2):
 
-    def __init__(self, preferred_sample_rate, gains, frequency_offset, signal_frequency):
-        
+    def __init__(self, preferred_sample_rate, frequency_offset, signal_frequency=None, gains=None):
+
         gr.hier_block2.__init__(self, "Radio Source",
             gr.io_signature(0, 0, gr.sizeof_gr_complex),
             gr.io_signature(1, 1, gr.sizeof_gr_complex))
-        
+
         ##################################################
         # Blocks
         ##################################################
         self.source = osmosdr.source('sensitivity')
-        
-        self.source.set_center_freq(signal_frequency - frequency_offset)
-        
-        self._set_gains(gains)
+        self.frequency_offset = frequency_offset
+
+        self.set_frequency(signal_frequency)
+        self.set_gains(gains)
+
         self._set_closest_possible_sample_rate(preferred_sample_rate)
         self._set_closest_possible_prefilter(preferred_sample_rate)
         resample_ratio = self._calc_resample_ratio(preferred_sample_rate)
         self.resample = gr_filter.rational_resampler_ccc(
             interpolation=resample_ratio.numerator,
             decimation=resample_ratio.denominator)
-        
+
         print('Selected output sample rate', self.sample_rate())
-        
+
 
         ##################################################
         # Connections
         ##################################################
         self.connect(self.source, self.resample, self)
-    
+
+
     def sample_rate(self):
         return (
             int(self.source.get_sample_rate())
@@ -52,8 +53,23 @@ class RadioSource(gr.hier_block2):
     def get_center_frequency(self):
         return self.source.get_center_freq()
 
+    def get_signal_frequency(self):
+        return self.get_center_frequency() + self.frequency_offset
 
-    def _set_gains(self, gains):
+    def set_signal_frequency(self, signal_frequency):
+        if signal_frequency is None:
+            return
+        self.source.set_center_freq(signal_frequency - self.frequency_offset)
+
+    def get_gain_names(self):
+        return self.source.get_gain_names()
+
+    def get_gains(self):
+        return [self.source.get_gain(n) for n in self.get_gain_names()]
+
+    def set_gains(self, gains):
+        if gains is None:
+            return
         gain_stage_names = self.source.get_gain_names()
         actual_gains = [
             self.source.set_gain(g, n) for g, n in zip(gains, gain_stage_names)]
@@ -64,6 +80,7 @@ class RadioSource(gr.hier_block2):
         print('Gain stages', gain_stage_names)
         print('Attempted  ', gains)
         print('Actual     ', actual_gains)
+
 
     def _set_closest_possible_sample_rate(self, preferred_sample_rate):
         try:
