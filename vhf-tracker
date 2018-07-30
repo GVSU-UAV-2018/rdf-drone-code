@@ -56,7 +56,7 @@ def handle_COMMAND_LONG_CMD_RUN_SCAN(connection, msg):
     if requested_scan == last_completed_scan:
         connection.command_ack_send(
             msg.command,
-            requested_scan, # result field used to indicate which scan we're responding for
+            mavlink.MAV_RESULT_ACCEPTED,
             100,            # progress field, used for percent-done estimate
             0,              # result field, not used
             msg.get_srcSystem(),
@@ -69,7 +69,7 @@ def handle_COMMAND_LONG_CMD_RUN_SCAN(connection, msg):
 
         connection.command_ack_send(
             msg.command,
-            requested_scan,
+            mavlink.MAV_RESULT_IN_PROGRESS,
             detector.percent_finished(),
             0,
             msg.get_srcSystem(),
