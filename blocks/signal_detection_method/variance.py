@@ -124,12 +124,11 @@ class Variance(gr.sync_block):
 
         signal_arr = numpy.array(input_items[0][0,b:c])
 
-        signal_estimate = numpy.max(signal_arr)
         signal_variance = numpy.var(signal_arr)
 
         if (self.expected_variance.remaining_warmup == 0
-        and signal_variance > self.threshold * self.expected_variance.estimate):
-            output_items[0][0] = signal_estimate
+        and signal_variance > self.threshold**2 * self.expected_variance.estimate):
+            output_items[0][0] = numpy.sqrt(signal_variance)
         else:
             output_items[0][0] = 0
 
