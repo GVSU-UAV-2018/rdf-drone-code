@@ -10,8 +10,8 @@ from blocks.signal_detection_method import *
 from blocks.asyncsink import AsyncSink
 
 class SignalDetector(gr.top_block):
-    def __init__(self):
-        gr.top_block.__init__(self, config)
+    def __init__(self, config):
+        gr.top_block.__init__(self, self.__class__.__name__)
 
         self._start_time = -1
         self._end_time = 0
@@ -32,7 +32,7 @@ class SignalDetector(gr.top_block):
             threshold=config.snr_threshold,
             decay_time=config.detection_interval)
 
-        self.extract = AsyncSink(sample_snr = 0)
+        self.extract = AsyncSink()
 
         self.connect(self.source, self.psd, self.processing, self.extract)
 
@@ -60,7 +60,7 @@ class SignalDetector(gr.top_block):
     def set_gain(self, stage, gain):
         if type(stage) == int:
             stage = self.get_gain_names()[stage]
-        print('Setting gain {0} to {1}'.format(stage, gains))
+        print('Setting gain {0} to {1}'.format(stage, gain))
         self.source.set_gain(gain, stage)
 
 
@@ -84,7 +84,7 @@ class SignalDetector(gr.top_block):
     def percent_finished(self):
         if not self.running():
             return 0
-        result = (int((time.time() - self._start_time)
+        result = int((time.time() - self._start_time)
             * 100.0 / (self._end_time - self._start_time))
         if result < 0:
             return 0
@@ -93,7 +93,7 @@ class SignalDetector(gr.top_block):
         else:
             return result
 
-    def time_remaining(self)
+    def time_remaining(self):
         if not self.running():
             return 0
         return self._end_time - time.time()

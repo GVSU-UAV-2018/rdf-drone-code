@@ -27,6 +27,7 @@ from pymavlink import mavutil
 from pymavlink.mavutil import mavlink
 from mavwrapper import send_heartbeat, MavParam, MavParamTable
 
+from signaldetector import SignalDetector
 
 from argparse import ArgumentParser
 import programsetup
@@ -129,4 +130,4 @@ while True:
             last_completed_scan = scan_in_progress
             scan_in_progress = -1
 
-    sleep(0.01)
+    time.sleep(0.01)

@@ -25,7 +25,7 @@ class RadioSource(gr.hier_block2):
         self.source = osmosdr.source('sensitivity')
         self.frequency_offset = frequency_offset
 
-        self.set_frequency(signal_frequency)
+        self.set_signal_frequency(signal_frequency)
         self.set_gains(gains)
 
         self._set_closest_possible_sample_rate(preferred_sample_rate)
@@ -80,6 +80,9 @@ class RadioSource(gr.hier_block2):
         print('Gain stages', gain_stage_names)
         print('Attempted  ', gains)
         print('Actual     ', actual_gains)
+
+    def set_gain(self, gain, stage):
+        self.source.set_gain(gain, stage)
 
 
     def _set_closest_possible_sample_rate(self, preferred_sample_rate):

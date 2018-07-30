@@ -105,7 +105,7 @@ class MavParamTable(object):
         v = self._params[i].value
         connection.param_value_send(
             k, v, PARAM_TYPE_REAL64, len(self._params), i)
-        
+
 
     def _handle_PARAM_REQUEST_READ(self, connection, message):
         try:
@@ -115,10 +115,11 @@ class MavParamTable(object):
 
     def _handle_PARAM_REQUEST_LIST(self, connection, message):
         for param in self._params:
-            self._send_param(param.name, -1)
+            self._send_param(connection, param.name, -1)
 
     def _handle_PARAM_SET(self, connection, message):
         try:
             self.__setattr__(message.param_id, message.param_value)
+            self._send_param(connection, message.param_id, -1)
         except Exception as ex:
             print('{0} failed: {1}'.format(message.get_type(), ex))
