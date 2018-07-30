@@ -84,8 +84,14 @@ class SignalDetector(gr.top_block):
     def percent_finished(self):
         if not self.running():
             return 0
-        return int((time.time() - self._start_time)
-            * 1.0 / (self._end_time - self._start_time))
+        result = (int((time.time() - self._start_time)
+            * 100.0 / (self._end_time - self._start_time))
+        if result < 0:
+            return 0
+        elif result > 99:
+            return 99
+        else:
+            return result
 
     def time_remaining(self)
         if not self.running():
