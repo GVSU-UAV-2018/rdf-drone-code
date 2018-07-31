@@ -2,7 +2,8 @@ from collections import namedtuple
 
 # from MAVLink common message set specification
 PARAM_ID_MAX_LENGTH = 16
-PARAM_TYPE_REAL64 = 10
+PARAM_TYPE_REAL32 = 9
+PARAM_TYPE_REAL64 = 10 # not supported by a lot of software so we have to use REAL32 :-(
 MAV_TYPE_ONBOARD_CONTROLLER = 18
 MAV_TYPE_AUTOPILOT_INVALID = 8
 MAV_STATE_ACTIVE = 4
@@ -40,8 +41,7 @@ class MavParamTable(object):
 
     * the name of a parameter must be no longer than 16 characters,
       so it can be used as a MAVLink param_id.
-    * the type of the parameter is always `float` (MAV_PARAM_TYPE_REAL64),
-      which is a 64-bit float.
+    * the type of the parameter is always `float`, which is a 64-bit float.
     """
 
     __slots__ = '_params', '_lookup', '_handlers'
@@ -103,8 +103,9 @@ class MavParamTable(object):
         if i < 0:
             i = self._lookup[k]
         v = self._params[i].value
+        print('Sending PARAM_VALUE for {0}:{1}'.format(k, v))
         connection.param_value_send(
-            k, v, PARAM_TYPE_REAL64, len(self._params), i)
+            k, v, PARAM_TYPE_REAL32, len(self._params), i)
 
 
     def _handle_PARAM_REQUEST_READ(self, connection, message):
