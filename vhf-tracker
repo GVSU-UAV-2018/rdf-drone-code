@@ -105,10 +105,14 @@ mavlink_con = mavutil.mavlink_connection(
     config.mavlink_system_id,
     config.mavlink_component_id)
 
-
+last_heartbeat_time = 0
 while True:
     watchdog.keep_alive()
-    send_heartbeat(mavlink_con.mav)
+    now = time.time()
+
+    if now - last_heartbeat_time > 1:
+        send_heartbeat(mavlink_con.mav)
+        last_heartbeat_time = now
 
     msg = mavlink_con.recv_msg()
 
