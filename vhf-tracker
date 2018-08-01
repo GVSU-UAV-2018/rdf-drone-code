@@ -76,7 +76,7 @@ def summarize_scan_result(samples):
     if len(samples) > 0:
         return max(samples)
     else:
-        return 0
+        raise Exception('No samples to summarize. The radio receiver may have disconnected.')
 
 
 detector = SignalDetector(config)
