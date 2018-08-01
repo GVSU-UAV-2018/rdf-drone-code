@@ -1,5 +1,4 @@
-
-
+import time
 from gnuradio import gr
 from gnuradio import blocks
 
@@ -100,4 +99,4 @@ class SignalDetector(gr.top_block):
 
 
     def pop_samples(self):
-        return self.extract.pop_all()
+        return self.extract.pop_all_samples()

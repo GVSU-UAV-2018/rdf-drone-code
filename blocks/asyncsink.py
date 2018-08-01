@@ -20,9 +20,7 @@ class AsyncSink(gr.sync_block):
         self._queue.append(input_items[0][0])
         return 1
 
-    def pop_all():
-        self.lock()
+    def pop_all_samples(self):
         result = self._queue
         self._queue = []
-        self.unlock()
         return result

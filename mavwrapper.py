@@ -7,7 +7,7 @@ PARAM_TYPE_REAL64 = 10 # not supported by a lot of software so we have to use RE
 MAV_TYPE_ONBOARD_CONTROLLER = 18
 MAV_TYPE_AUTOPILOT_INVALID = 8
 MAV_STATE_ACTIVE = 4
-
+MAV_RESULT_IN_PROGRESS = 5
 
 def send_heartbeat(connection, status=MAV_STATE_ACTIVE):
     connection.heartbeat_send(
@@ -79,7 +79,8 @@ class MavParamTable(object):
         i = self._lookup[k]
         old_value = self._params[i]
         result = MavParam(k, float(v), old_value.set_param)
-        result.set_param(result)
+        if result.set_param is not None:
+            result.set_param(result)
         self._params[i] = result
 
 

@@ -6,6 +6,7 @@ watchdog.patience = 5
 watchdog.keep_alive()
 
 import time
+import sys
 
 # Pymavlink is... mostly not documented, so most of our knowledge of it comes
 # from reading the (mostly auto-generated) code.
@@ -43,6 +44,7 @@ print(config)
 
 
 CMD_RUN_SCAN = mavlink.MAV_CMD_USER_1
+MAV_RESULT_IN_PROGRESS = 5
 
 last_completed_scan = -1
 scan_in_progress = -1
@@ -51,17 +53,14 @@ def handle_COMMAND_LONG_CMD_RUN_SCAN(connection, msg):
     global detector
     global last_completed_scan
     global scan_in_progress
+    global MAV_RESULT_IN_PROGRESS
 
     requested_scan = msg.param1
 
     if requested_scan == last_completed_scan:
         connection.command_ack_send(
             msg.command,
-            mavlink.MAV_RESULT_ACCEPTED,
-            100,            # progress field, used for percent-done estimate
-            0,              # result field, not used
-            msg.get_srcSystem(),
-            msg.get_srcComponent())
+            mavlink.MAV_RESULT_ACCEPTED)
 
     else:
         if not detector.running() or requested_scan != scan_in_progress:
@@ -70,11 +69,7 @@ def handle_COMMAND_LONG_CMD_RUN_SCAN(connection, msg):
 
         connection.command_ack_send(
             msg.command,
-            mavlink.MAV_RESULT_IN_PROGRESS,
-            detector.percent_finished(),
-            0,
-            msg.get_srcSystem(),
-            msg.get_srcComponent())
+            MAV_RESULT_IN_PROGRESS)
 
 
 def summarize_scan_result(samples):
@@ -134,4 +129,5 @@ while True:
             last_completed_scan = scan_in_progress
             scan_in_progress = -1
 
+    sys.stdout.flush()
     time.sleep(0.01)
