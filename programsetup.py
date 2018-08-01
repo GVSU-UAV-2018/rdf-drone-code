@@ -108,7 +108,7 @@ def add_config_section_signal_detection(parser, detection_config):
         default=detection_config['decay time'],
         help='Decay time for noise estimate, in seconds.')
 
-   parser.add_argument('-a', '--decay-strength', type=float,
+    parser.add_argument('-a', '--decay-strength', type=float,
         default=detection_config['decay strength'],
         help='1/a, where a is the proportion of noise estimate left after decay.')
 
