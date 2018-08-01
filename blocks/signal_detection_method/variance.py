@@ -129,8 +129,9 @@ class Variance(gr.sync_block):
         signal_variance = numpy.var(signal_arr)
 
         if (self.expected_variance.remaining_warmup == 0
-        and signal_variance > self.threshold**2 * self.expected_variance.estimate):
-            output_items[0][0] = numpy.sqrt(signal_variance - self.expected_variance.estimate)
+        and signal_variance > self.threshold**2 * self.expected_variance.estimate
+        and self.expected_variance.estimate > 0):
+            output_items[0][0] = numpy.sqrt(signal_variance * 1.0 / self.expected_variance.estimate)
         else:
             output_items[0][0] = 0
 
