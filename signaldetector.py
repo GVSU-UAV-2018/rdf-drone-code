@@ -29,7 +29,8 @@ class SignalDetector(gr.top_block):
             signal_frequency=config.frequency_offset,
             signal_bandwidth=config.signal_bandwidth,
             threshold=config.snr_threshold,
-            decay_time=config.detection_interval)
+            decay_time=config.decay_time,
+            decay_strength=config.decay_strength)
 
         self.extract = AsyncSink()
 

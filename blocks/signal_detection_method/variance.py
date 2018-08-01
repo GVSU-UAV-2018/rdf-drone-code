@@ -84,6 +84,7 @@ class Variance(gr.sync_block):
         signal_bandwidth,
         threshold,
         decay_time,
+        decay_strength,
         **extra_args):
 
         gr.sync_block.__init__(self,
@@ -97,6 +98,7 @@ class Variance(gr.sync_block):
         self.signal_bandwidth = signal_bandwidth
         self.threshold = threshold
         self.decay_time = decay_time
+        self.decay_strength = decay_strength
 
 
     def set_sample_rate(self, sample_rate):
@@ -109,7 +111,7 @@ class Variance(gr.sync_block):
         self.signal_max_bin = int(center + ceil(offset + bandwidth / 2))
 
         decay_n_samples = self.decay_time * self.sample_rate
-        decay_constant = math.exp(-1.0/decay_n_samples)
+        decay_constant = self.decay_strength**(-1.0/decay_n_samples)
         self.expected_variance = MovingAverageEstimator(
             rate=decay_constant, warmup=decay_n_samples)
 
@@ -128,7 +130,7 @@ class Variance(gr.sync_block):
 
         if (self.expected_variance.remaining_warmup == 0
         and signal_variance > self.threshold**2 * self.expected_variance.estimate):
-            output_items[0][0] = numpy.sqrt(signal_variance)
+            output_items[0][0] = numpy.sqrt(signal_variance - self.expected_variance.estimate)
         else:
             output_items[0][0] = 0
 

@@ -104,9 +104,13 @@ def add_config_section_signal_detection(parser, detection_config):
         default=detection_config['snr threshold'],
         help='Minimum signal-to-noise ratio of a real signal (linear ratio)')
 
-    parser.add_argument('-T', '--detection_interval', type=float,
-        default=detection_config['detection interval'],
-        help='Expected inverval between detected signal pulses, in seconds.')
+    parser.add_argument('-T', '--decay-time', type=float,
+        default=detection_config['decay time'],
+        help='Decay time for noise estimate, in seconds.')
+
+   parser.add_argument('-a', '--decay-strength', type=float,
+        default=detection_config['decay strength'],
+        help='1/a, where a is the proportion of noise estimate left after decay.')
 
     parser.add_argument('--list-detection-methods',
         action='store_true',
