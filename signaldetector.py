@@ -28,6 +28,7 @@ class SignalDetector(gr.top_block):
             center_frequency=0,
             signal_frequency=config.frequency_offset,
             signal_bandwidth=config.signal_bandwidth,
+            signal_pulse_duration=config.signal_pulse_duration,
             threshold=config.snr_threshold,
             decay_time=config.decay_time,
             decay_strength=config.decay_strength)

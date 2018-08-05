@@ -100,6 +100,10 @@ def add_config_section_signal_detection(parser, detection_config):
         default=detection_config['signal bandwidth'],
         help='Signal bandwidth in Hz')
 
+    parser.add_argument('-p', '--signal-pulse-duration', type=float,
+        default=detection_config['signal pulse duration'],
+        help='Signal pulse duration in seconds')
+
     parser.add_argument('-l', '--snr-threshold', type=float,
         default=detection_config['snr threshold'],
         help='Minimum signal-to-noise ratio of a real signal (linear ratio)')
