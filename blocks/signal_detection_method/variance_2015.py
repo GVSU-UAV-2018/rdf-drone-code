@@ -61,8 +61,8 @@ class Variance2015(gr.sync_block):
         global var_avg
         global var_avg_temp
         global i
-        
-        num_windows = (int)(self.sample_rate / self.num_bins) 
+
+        num_windows = self.sample_rate #sample_rate = sampling_rate / num bins
         noise_arr = numpy.array([])
 
         a, b, c, d = 0, self.signal_min_bin, self.signal_max_bin, self.num_bins
@@ -72,15 +72,18 @@ class Variance2015(gr.sync_block):
         noise_mean = numpy.mean(noise_arr)
         noise_norm = numpy.asarray(noise_arr) - noise_mean
         noise_var = numpy.var(noise_norm)
-        
-        if(i<31):
+
+        if(i < num_windows):
             var_avg_temp = var_avg_temp + noise_var
-            i = i + 1    
+            i = i + 1
         else:
-            var_avg = var_avg_temp / 31
+            var_avg = var_avg_temp / num_windows
             var_avg_temp = 0.0
             i = 0
 
-        output_items[0][0] = noise_var / var_avg
+        if var_avg == 0:
+            output_items[0][0] = 0
+        else:
+            output_items[0][0] = noise_var / var_avg
 
         return 1

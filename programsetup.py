@@ -70,7 +70,7 @@ def add_config_section_acquisition(parser, acquisition_config):
         default=acquisition_config['gains'],
         help='Gain of each amplifier stage, in device units')
 
-    parser.add_argument('-t', '--time', type=int,
+    parser.add_argument('-t', '--time', type=float,
         default=acquisition_config['hold time'],
         help='Time to run sampling, in seconds')
 

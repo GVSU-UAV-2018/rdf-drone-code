@@ -2,6 +2,11 @@ import time
 from gnuradio import gr
 from gnuradio import blocks
 
+from gnuradio import fft
+from gnuradio import filter
+from gnuradio.fft import window
+from gnuradio.filter import firdes
+
 import programsetup
 from blocks.radiosource import RadioSource
 from blocks.psd import PowerSpectralDensity
@@ -18,10 +23,18 @@ class SignalDetector(gr.top_block):
 
         self.source = RadioSource(
             preferred_sample_rate=config.sample_rate,
+            gains=config.gains,
             frequency_offset=config.frequency_offset)
 
-        self.psd = PowerSpectralDensity(
-            num_fft_bins=config.fft_resolution)
+        self.fft = fft.fft_vfc(config.fft_resolution, True, (window.rectangular(config.fft_resolution)), 1)
+        self.stream_to_vector = blocks.stream_to_vector(gr.sizeof_float*1, config.fft_resolution)
+        self.psd = blocks.multiply_vcc(config.fft_resolution)
+        self.complex_to_real = blocks.complex_to_real(1)
+        self.complex_to_mag = blocks.complex_to_mag(config.fft_resolution)
+        self.bpf = filter.fir_filter_ccf(1, firdes.band_pass(100, config.sample_rate,
+            self.source.frequency_offset - (config.signal_bandwidth / 2),
+            self.source.frequency_offset + (config.signal_bandwidth / 2),
+            600, firdes.WIN_RECTANGULAR, 6.76))
 
         self.processing = select_detection_method(config.detection_method)(
             num_bins=config.fft_resolution,
@@ -34,13 +47,17 @@ class SignalDetector(gr.top_block):
 
         self.extract = AsyncSink()
 
-        self.connect(self.source, self.psd, self.processing, self.extract)
+        self.connect(self.source, self.bpf)
+        self.connect(self.bpf, self.complex_to_real)
+        self.connect(self.complex_to_real, self.stream_to_vector)
+        self.connect(self.stream_to_vector, self.fft)
+        self.connect((self.fft, 0), (self.psd, 1))
+        self.connect((self.fft, 0), (self.psd, 0))
+        self.connect(self.psd, self.complex_to_mag)
+        self.connect(self.complex_to_mag, self.processing)
+        self.connect(self.processing, self.extract)
 
-        self.psd.set_sample_rate(config.sample_rate)
-        self.processing.set_sample_rate(self.psd.output_sample_rate())
-        self.set_gain(0, config.gains[0])
-        self.set_gain(1, config.gains[1])
-        self.set_gain(2, config.gains[2])
+        self.processing.set_sample_rate(config.sample_rate / config.fft_resolution)
 
 
     def get_signal_frequency(self):
