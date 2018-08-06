@@ -3,11 +3,13 @@ import sys
 from spectrum_average import SpectrumAverage
 from variance import Variance
 from variance_2015 import Variance2015
+from variance_time_based import VarianceTimeBased
 
 available_detection_methods = {
     SpectrumAverage.__name__: SpectrumAverage,
     Variance.__name__: Variance,
-	Variance2015.__name__: Variance2015}
+	Variance2015.__name__: Variance2015,
+    VarianceTimeBased.__name__: VarianceTimeBased}
 
 def select_detection_method(name):
     if name not in available_detection_methods:

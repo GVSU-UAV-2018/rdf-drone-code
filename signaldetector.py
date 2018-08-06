@@ -1,10 +1,11 @@
 import time
 from gnuradio import gr
 from gnuradio import blocks
+from gnuradio import filter as gr_filter
 
 import programsetup
+import filterdesign
 from blocks.radiosource import RadioSource
-from blocks.psd import PowerSpectralDensity
 from blocks.signal_detection_method import *
 from blocks.asyncsink import AsyncSink
 
@@ -20,8 +21,16 @@ class SignalDetector(gr.top_block):
             preferred_sample_rate=config.sample_rate,
             frequency_offset=config.frequency_offset)
 
-        self.psd = PowerSpectralDensity(
-            num_fft_bins=config.fft_resolution)
+        n, d = filterdesign.bandpass(
+            order=4,
+            low=config.frequency_offset - config.signal_bandwidth * 0.5,
+            high=config.frequency_offset + config.signal_bandwidth * 0.5,
+            sample_rate=config.sample_rate)
+        self.filter = gr_filter.iir_filter_ccc(n, d, oldstyle=False)
+
+        self.vectorize = blocks.stream_to_vector(
+            gr.sizeof_gr_complex,
+            config.fft_resolution)
 
         self.processing = select_detection_method(config.detection_method)(
             num_bins=config.fft_resolution,
@@ -34,10 +43,15 @@ class SignalDetector(gr.top_block):
 
         self.extract = AsyncSink()
 
-        self.connect(self.source, self.psd, self.processing, self.extract)
+        self.connect(
+            self.source,
+            self.filter,
+            self.vectorize,
+            self.processing,
+            self.extract)
 
-        self.psd.set_sample_rate(config.sample_rate)
-        self.processing.set_sample_rate(self.psd.output_sample_rate())
+        self.processing.set_sample_rate(
+            config.sample_rate / config.fft_resolution)
 
 
     def get_signal_frequency(self):
