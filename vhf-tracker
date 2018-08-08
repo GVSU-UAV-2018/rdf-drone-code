@@ -81,7 +81,7 @@ def summarize_scan_result(samples):
 
 detector = SignalDetector(config)
 
-mav_params = MavParamTable(
+mav_params = MavParamTable([
     MavParam('LNA_GAIN', config.gains[0], lambda p: detector.set_gain(0, p.value)),
     MavParam('MIX_GAIN', config.gains[1], lambda p: detector.set_gain(1, p.value)),
     MavParam('IF_GAIN', config.gains[2], lambda p: detector.set_gain(2, p.value)),
@@ -92,7 +92,7 @@ mav_params = MavParamTable(
     # not actually SNR, but this is the name expected on the other side of
     # the MAVLink connection
     MavParam('VHF_SNR', 0, set_param=None)
-)
+])
 
 mavlink_con = mavutil.mavlink_connection(
     config.mavlink_device,

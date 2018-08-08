@@ -1,5 +1,7 @@
 from collections import namedtuple
 
+from configparser import ConfigParser, DuplicateSectionError
+
 # from MAVLink common message set specification
 PARAM_ID_MAX_LENGTH = 16
 PARAM_TYPE_REAL32 = 9
@@ -44,13 +46,14 @@ class MavParamTable(object):
     * the type of the parameter is always `float`, which is a 64-bit float.
     """
 
-    __slots__ = '_params', '_lookup', '_handlers'
+    __slots__ = '_name', '_params', '_lookup', '_handlers'
 
-    def __init__(self, *params):
+    def __init__(self, params, name='MAVTable'):
         """
         :param params:
             The list of parameters stored in this object.
         """
+        object.__setattr__(self, '_name', name)
         object.__setattr__(self, '_params',
             [MavParam(param.name, float(param.value), param.set_param)
                 for param in params])
@@ -63,6 +66,7 @@ class MavParamTable(object):
             'PARAM_REQUEST_LIST': self.__class__._handle_PARAM_REQUEST_LIST,
             'PARAM_SET': self.__class__._handle_PARAM_SET
             })
+        self.load(self._name+'_persistent.ini')
 
 
     def __getattr__(self, k):
@@ -73,19 +77,63 @@ class MavParamTable(object):
         except KeyError:
             raise AttributeError(k)
 
-    def __setattr__(self, k, v):
+    def __setattr__(self, k, v, save_now=True):
         if k not in self._lookup:
-            raise AttributeError(k)
+            raise AttributeError('No key "{0}"'.format(k))
         i = self._lookup[k]
         old_value = self._params[i]
         result = MavParam(k, float(v), old_value.set_param)
         if result.set_param is not None:
             result.set_param(result)
         self._params[i] = result
+        self.save(self._name+'_persistent.ini')
 
 
     def __repr__(self):
         return '{0}({1})'.format(self.__class__, self._params)
+
+
+    def load(self, filename):
+        parser = ConfigParser()
+        parser.optionxform = str
+        try:
+            with open(filename, 'r') as config_file:
+                parser.readfp(config_file)
+        except:
+            print('Failed to read saved settings file "{0}"'.format(filename))
+
+        try:
+            for k, v in parser.items('saved'):
+                try:
+                    self.__setattr__(k, float(v), save_now=False)
+                except Exception as e:
+                    print('Failed to load "{0}": {1}'.format(k, e))
+        except:
+            print('Failed to read saved settings file "{0}", section "saved"'.format(filename))
+
+
+    def save(self, filename):
+        parser = ConfigParser()
+        parser.optionxform = str
+        try:
+            with open(filename, 'r') as config_file:
+                parser.readfp(config_file)
+        except:
+            print('Failed to read saved settings file')
+
+        try:
+            parser.add_section('saved')
+        except DuplicateSectionError:
+            pass
+
+        for param in self._params:
+            parser.set('saved', param.name, str(param.value))
+
+        try:
+            with open(filename, 'w') as config_file:
+                parser.write(config_file)
+        except:
+            print('Failed to write saved settings file')
 
 
     def handle(self, connection, message):
