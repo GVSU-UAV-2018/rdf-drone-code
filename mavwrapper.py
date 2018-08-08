@@ -168,6 +168,7 @@ class MavParamTable(object):
             self._send_param(connection, param.name, -1)
 
     def _handle_PARAM_SET(self, connection, message):
+        print('PARAM_SET: {0}: {1}'.format(message.param_id, message.param_value))
         try:
             self.__setattr__(message.param_id, message.param_value)
             self._send_param(connection, message.param_id, -1)
