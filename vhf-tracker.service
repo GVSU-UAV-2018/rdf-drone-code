@@ -4,7 +4,7 @@ After=
 Conflicts=
 
 [Service]
-ExecStart=/opt/vhf-tracker/daemon.sh
+ExecStart=/opt/vhf-tracker/vhf-tracker-daemon.sh
 Type=simple
 Restart=always
 RestartSec=1
